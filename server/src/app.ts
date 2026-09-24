@@ -5,6 +5,7 @@ import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import { env, isProd } from './config/env.js';
 import healthRoutes from './routes/health.routes.js';
+import authRoutes from './routes/auth.routes.js';
 import { notFound, errorHandler } from './middleware/error.js';
 
 export const app = express();
@@ -20,6 +21,7 @@ if (!isProd) app.use(morgan('dev'));
 
 // ── Routes ──────────────────────────────────────────
 app.use('/api/health', healthRoutes);
+app.use('/api/auth', authRoutes);
 
 // ── Fallbacks ───────────────────────────────────────
 app.use(notFound);
