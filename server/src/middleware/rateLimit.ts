@@ -50,3 +50,10 @@ export const sensitiveLimiter = rateLimit({
   limit: 10,
   ...tooMany('Too many attempts. Try again in 15 minutes.'),
 });
+
+// Search-as-you-type: 90 searches a minute per IP — generous for a person, a wall for a scraper.
+export const searchLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 90,
+  ...tooMany('Searching too fast — give it a few seconds.'),
+});

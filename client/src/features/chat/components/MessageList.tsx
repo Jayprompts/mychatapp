@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router';
 import { LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -147,7 +148,13 @@ export function MessageList({ conversation, myId, typingUserIds, onReply, onEdit
       for (let i = 0; i < 15; i++) {
         const el = document.getElementById(`msg-${messageId}`);
         if (el) {
-          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          // Instant, not smooth: a smooth scroll can be cut short when reaching the top loads older
+          // messages (the list then holds its position). Settle, and re-centre if something moved.
+          el.scrollIntoView({ block: 'center' });
+          await frame();
+          const box = el.getBoundingClientRect();
+          const view = scrollRef.current?.getBoundingClientRect();
+          if (view && (box.bottom < view.top || box.top > view.bottom)) el.scrollIntoView({ block: 'center' });
           setHighlightedId(messageId);
           setTimeout(() => setHighlightedId((h) => (h === messageId ? null : h)), 1600);
           return;
@@ -160,6 +167,26 @@ export function MessageList({ conversation, myId, typingUserIds, onReply, onEdit
     },
     [hasNextPage, fetchNextPage],
   );
+
+  // Opened from search (…?m=<messageId>): jump to that message once history is loaded, then tidy the URL.
+  const [params, setParams] = useSearchParams();
+  const target = params.get('m');
+  const loaded = query.isSuccess;
+  useEffect(() => {
+    if (!loaded || !target) return;
+    const t = setTimeout(() => {
+      void jumpTo(target).finally(() =>
+        setParams(
+          (p) => {
+            p.delete('m');
+            return p;
+          },
+          { replace: true },
+        ),
+      );
+    }, 0); // next tick: the list has rendered
+    return () => clearTimeout(t);
+  }, [loaded, target, jumpTo, setParams]);
 
   if (query.isPending) return <HistorySkeleton />;
 
@@ -311,3 +338,4 @@ function HistorySkeleton() {
     </div>
   );
 }
+

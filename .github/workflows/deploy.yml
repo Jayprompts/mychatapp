@@ -45,6 +45,7 @@ jobs:
           mkdir -p release/server release/client
           cp -r server/dist server/package.json server/package-lock.json server/ecosystem.config.cjs release/server/
           cp -r client/dist release/client/
+          cp -r ops release/ops && chmod +x release/ops/*.sh # backup/restore scripts (cron runs ops/backup.sh)
 
       - name: Set up SSH
         run: |

@@ -1,3 +1,4 @@
+import { SearchButton } from '@/features/search/SearchButton';
 import { HeaderBell } from '@/features/notifications/components/NotificationBell';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
@@ -40,7 +41,10 @@ export function ConversationList({ activeId }: { activeId?: string }) {
     <div className="relative flex min-h-0 flex-1 flex-col">
       <header className="flex h-16 shrink-0 items-center justify-between px-4">
         <h1 className="text-[22px] font-bold tracking-tight text-text-primary">Chats</h1>
-        <HeaderBell />
+        <div className="flex items-center">
+          <SearchButton variant="header" />
+          <HeaderBell />
+        </div>
       </header>
 
       <div className="px-4 pb-3">

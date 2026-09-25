@@ -1,4 +1,5 @@
-import { Link, NavLink, Outlet, useMatch } from 'react-router';
+import { useEffect } from 'react';
+import { Link, NavLink, Outlet, useLocation, useMatch } from 'react-router';
 import { MessageCircle, Newspaper, User, Users, type LucideIcon } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { LiveToaster } from '@/components/ui/LiveToaster';
@@ -8,6 +9,9 @@ import { useConversations } from '@/features/chat/api';
 import { useChatRealtime } from '@/features/chat/useChatRealtime';
 import { RailBell } from '@/features/notifications/components/NotificationBell';
 import { useNotificationsRealtime } from '@/features/notifications/useNotificationsRealtime';
+import { closeSearchIfMoved, openSearch } from '@/features/search/api';
+import { SearchButton } from '@/features/search/SearchButton';
+import { SearchOverlay } from '@/features/search/SearchOverlay';
 import { cn } from '@/lib/cn';
 
 type NavItem = { to: string; label: string; icon: LucideIcon; badge?: number };
@@ -19,6 +23,20 @@ export function AppShell() {
   const { data: user } = useMe();
   useChatRealtime(user?.id); // live connection for the whole logged-in app
   useNotificationsRealtime(user); // notifications + "New message from…" toasts
+
+  // ⌘K / Ctrl+K opens search from anywhere; any navigation closes it.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        openSearch();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  const { pathname, search } = useLocation();
+  useEffect(() => closeSearchIfMoved(), [pathname, search]);
 
   const { data: conversations } = useConversations();
   const unreadOf = (community: boolean) =>
@@ -56,7 +74,8 @@ export function AppShell() {
               <RailLink key={item.to} item={item} />
             ))}
         </nav>
-        <div className="mt-2">
+        <div className="mt-2 flex flex-col items-center gap-1">
+          <SearchButton variant="rail" />
           <RailBell />
         </div>
 
@@ -88,6 +107,7 @@ export function AppShell() {
 
 
       <LiveToaster />
+      <SearchOverlay />
 
       {/* Bottom tab bar — mobile */}
       {!inConversation && (

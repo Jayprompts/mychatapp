@@ -5,6 +5,7 @@ import { EmptyState } from '@/components/ui/EmptyState';
 import { buttonClasses } from '@/components/ui/buttonClasses';
 import { useMyPosts, usePostFeed, useSavedPosts } from '@/features/blog/api';
 import { PostGrid } from '@/features/blog/components/PostGrid';
+import { SearchButton } from '@/features/search/SearchButton';
 import { POST_TAGS, type FeedSort, type PostTag } from '@/features/blog/types';
 import { cn } from '@/lib/cn';
 
@@ -50,7 +51,10 @@ export function BlogPage() {
             </span>
             Blog
           </h1>
-          {writeLink}
+          <div className="flex items-center gap-1">
+            <SearchButton variant="header" />
+            {writeLink}
+          </div>
         </div>
         <nav aria-label="Blog sections" className="flex gap-5 px-4 sm:px-6">
           {TABS.map((t) => (

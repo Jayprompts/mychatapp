@@ -11,6 +11,7 @@ import { CommunityPreview } from '@/features/communities/components/CommunityPre
 import { CreateCommunityDialog } from '@/features/communities/components/CreateCommunityDialog';
 import { DiscoverView } from '@/features/communities/components/DiscoverView';
 import { MyCommunitiesList } from '@/features/communities/components/MyCommunitiesList';
+import { SearchButton } from '@/features/search/SearchButton';
 import { cn } from '@/lib/cn';
 
 // /communities and /communities/:communityId
@@ -46,7 +47,10 @@ export function CommunitiesPage() {
       >
         <header className="flex h-16 shrink-0 items-center justify-between px-4">
           <h1 className="text-[22px] font-bold tracking-tight text-text-primary">Communities</h1>
-          {createButton}
+          <div className="flex items-center gap-1">
+            <SearchButton variant="header" />
+            {createButton}
+          </div>
         </header>
         <MobileTabs discover={false} />
         <Link
