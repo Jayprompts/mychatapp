@@ -16,10 +16,13 @@ export interface ServerToClientEvents {
   'conversation:updated': (payload: { conversationId: string }) => void; // refetch its details
   'conversation:removed': (payload: { conversationId: string }) => void; // you're no longer a member
   'community:updated': (payload: { communityId: string }) => void; // refetch (requests, approvals, edits)
+  'post:comments': (payload: { postId: string }) => void; // to people viewing the post: refetch comments
 }
 
 export interface ClientToServerEvents {
   typing: (payload: { conversationId: string; isTyping: boolean }) => void;
+  'post:watch': (payload: { postId: string }) => void; // I'm reading this post — send me its comment updates
+  'post:unwatch': (payload: { postId: string }) => void;
 }
 
 export type SocketData = { userId: string };

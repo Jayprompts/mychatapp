@@ -48,3 +48,24 @@ export type PostInput = Partial<{
   removeCover: true;
   imageOrder: string[];
 }>;
+
+export type CommentView = {
+  id: string;
+  postId: string;
+  parentId: string | null;
+  author: UserSummary | null; // null once deleted
+  replyTo: { id: string; displayName: string; username: string } | null;
+  body: string;
+  deleted: boolean;
+  likeCount: number;
+  liked: boolean;
+  editedAt: string | null;
+  createdAt: string;
+  canEdit: boolean;
+  canDelete: boolean;
+};
+export type CommentThread = CommentView & { replies: CommentView[] };
+
+export const REPORT_REASONS = ['Spam', 'Harassment', 'Misinformation', 'Hate speech', 'Violence', 'Other'] as const;
+export type ReportReason = (typeof REPORT_REASONS)[number];
+export type ReportTarget = { type: 'post' | 'comment'; id: string };

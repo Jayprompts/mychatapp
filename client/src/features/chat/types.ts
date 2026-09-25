@@ -109,8 +109,11 @@ export interface ServerToClientEvents {
   'conversation:updated': (payload: { conversationId: string }) => void;
   'conversation:removed': (payload: { conversationId: string }) => void;
   'community:updated': (payload: { communityId: string }) => void;
+  'post:comments': (payload: { postId: string }) => void; // someone commented on the post I'm reading
 }
 
 export interface ClientToServerEvents {
   typing: (payload: { conversationId: string; isTyping: boolean }) => void;
+  'post:watch': (payload: { postId: string }) => void;
+  'post:unwatch': (payload: { postId: string }) => void;
 }

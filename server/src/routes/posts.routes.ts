@@ -1,11 +1,12 @@
 import { Router } from 'express';
 import multer from 'multer';
+import * as comments from '../controllers/comments.controller.js';
 import * as posts from '../controllers/posts.controller.js';
 import { requireAuth } from '../middleware/auth.js';
-import { postWriteLimiter } from '../middleware/rateLimit.js';
+import { commentLimiter, postWriteLimiter } from '../middleware/rateLimit.js';
 import { validate } from '../middleware/validate.js';
 import { MEDIA_LIMITS } from '../services/media.js';
-import { createPostSchema, updatePostSchema } from '../validators/blog.schemas.js';
+import { createCommentSchema, createPostSchema, updatePostSchema } from '../validators/blog.schemas.js';
 
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MEDIA_LIMITS.uploadBytes, files: 1 } });
 const router = Router();
@@ -28,5 +29,7 @@ router.post('/:id/like', posts.like);
 router.delete('/:id/like', posts.unlike);
 router.post('/:id/bookmark', posts.bookmark);
 router.delete('/:id/bookmark', posts.unbookmark);
+router.get('/:id/comments', comments.list);
+router.post('/:id/comments', commentLimiter, validate(createCommentSchema), comments.create);
 
 export default router;

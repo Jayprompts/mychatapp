@@ -45,3 +45,18 @@ export const listQuerySchema = z.object({
 
 export type CreatePostInput = z.infer<typeof createPostSchema>;
 export type UpdatePostInput = z.infer<typeof updatePostSchema>;
+
+const commentBody = z.string().trim().min(1, 'Write something first').max(2000, 'Comment is too long (max 2000 characters)');
+
+export const createCommentSchema = z.object({
+  body: commentBody,
+  parentId: objectIdSchema.optional(), // reply to this comment (or to a reply — it joins the same thread)
+});
+export const editCommentSchema = z.object({ body: commentBody });
+
+export const commentsQuerySchema = z.object({
+  after: objectIdSchema.optional(),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+});
+
+export type CreateCommentInput = z.infer<typeof createCommentSchema>;

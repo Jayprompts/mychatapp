@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
-import { ArrowLeft, EyeOff, FileSearch, Link2, Pencil, Trash2 } from 'lucide-react';
+import { ArrowLeft, EyeOff, FileSearch, Flag, Pencil, Share2, Trash2 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -10,13 +10,17 @@ import { Menu, type MenuItem } from '@/components/ui/Menu';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { buttonClasses } from '@/components/ui/buttonClasses';
 import { useDeletePost, usePost, useUpdatePost } from '@/features/blog/api';
+import { usePostLive } from '@/features/blog/comments';
+import { CommentsSection } from '@/features/blog/components/CommentsSection';
+import { ReportDialog } from '@/features/blog/components/ReportDialog';
+import { ShareDialog } from '@/features/blog/components/ShareDialog';
 import { Markdown } from '@/features/blog/components/Markdown';
 import { BookmarkButton, LikeButton } from '@/features/blog/components/PostActions';
 import { authorName } from '@/features/blog/format';
 import { PostCover } from '@/features/blog/components/PostCover';
 import { TagChip } from '@/features/blog/components/TagChip';
 import { summarySource } from '@/features/blog/markdown';
-import type { PostDetail } from '@/features/blog/types';
+import type { PostDetail, ReportTarget } from '@/features/blog/types';
 import { errorMessage } from '@/lib/api';
 import { formatPostDate } from '@/lib/time';
 import { toast } from '@/lib/toast';
@@ -25,14 +29,22 @@ import { toast } from '@/lib/toast';
 export function PostPage() {
   const { postId } = useParams();
   const post = usePost(postId);
+  usePostLive(post.data?.status === 'published' ? postId : undefined); // live comments while reading
+  const [sharing, setSharing] = useState(false);
+  const [reporting, setReporting] = useState<ReportTarget | null>(null);
+  const actions = { onShare: () => setSharing(true), onReport: setReporting };
 
   return (
     <div className="flex flex-1 flex-col bg-bg">
-      <TopBar post={post.data} />
+      <TopBar post={post.data} {...actions} />
       {post.isPending ? (
         <PostSkeleton />
       ) : post.data ? (
-        <Article post={post.data} />
+        <>
+          <Article post={post.data} {...actions} />
+          <ShareDialog post={post.data} open={sharing} onClose={() => setSharing(false)} />
+          <ReportDialog target={reporting} onClose={() => setReporting(null)} />
+        </>
       ) : (
         <div className="flex flex-1 items-center justify-center">
           <EmptyState
@@ -51,16 +63,9 @@ export function PostPage() {
   );
 }
 
-async function copyLink(id: string) {
-  try {
-    await navigator.clipboard.writeText(`${window.location.origin}/blog/${id}`);
-    toast('Link copied');
-  } catch {
-    toast("Couldn't copy the link", 'error');
-  }
-}
+type Actions = { onShare: () => void; onReport: (target: ReportTarget) => void };
 
-function TopBar({ post }: { post?: PostDetail }) {
+function TopBar({ post, onShare, onReport }: { post?: PostDetail } & Actions) {
   const navigate = useNavigate();
   const back = () => (window.history.state?.idx > 0 ? navigate(-1) : navigate('/blog'));
   return (
@@ -79,12 +84,22 @@ function TopBar({ post }: { post?: PostDetail }) {
           <TagChip tag={post.tag} />
         </span>
       )}
-      {post && <PostMenu post={post} />}
+      {post?.status === 'published' && (
+        <button
+          type="button"
+          onClick={onShare}
+          aria-label="Share post"
+          className="flex size-9 items-center justify-center rounded-full text-text-secondary transition-colors hover:bg-bg hover:text-text-primary"
+        >
+          <Share2 size={18} />
+        </button>
+      )}
+      {post && <PostMenu post={post} onReport={onReport} />}
     </header>
   );
 }
 
-function PostMenu({ post }: { post: PostDetail }) {
+function PostMenu({ post, onReport }: { post: PostDetail; onReport: Actions['onReport'] }) {
   const navigate = useNavigate();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const del = useDeletePost();
@@ -104,6 +119,9 @@ function PostMenu({ post }: { post: PostDetail }) {
     });
   }
   if (post.canDelete) items.push({ label: 'Delete post', icon: <Trash2 size={16} />, danger: true, onSelect: () => setConfirmDelete(true) });
+  if (!post.canEdit && post.status === 'published') {
+    items.push({ label: 'Report post', icon: <Flag size={16} />, danger: true, onSelect: () => onReport({ type: 'post', id: post.id }) });
+  }
 
   return (
     <>
@@ -122,7 +140,7 @@ function PostMenu({ post }: { post: PostDetail }) {
   );
 }
 
-function Article({ post: p }: { post: PostDetail }) {
+function Article({ post: p, onShare, onReport }: { post: PostDetail } & Actions) {
   const [viewing, setViewing] = useState<number | null>(null);
   const update = useUpdatePost(p.id);
   const published = p.status === 'published';
@@ -208,21 +226,16 @@ function Article({ post: p }: { post: PostDetail }) {
           <div className="mt-10 flex flex-wrap items-center gap-3 border-y border-border py-5">
             <LikeButton post={p} variant="pill" />
             <BookmarkButton post={p} size="md" />
-            <div className="ml-auto flex gap-2">
-              <a
-                href={`https://twitter.com/intent/tweet?${new URLSearchParams({ text: p.title, url: `${window.location.origin}/blog/${p.id}` })}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={buttonClasses({ variant: 'outline', size: 'sm' })}
-              >
-                Share on X
-              </a>
-              <Button variant="outline" size="sm" onClick={() => void copyLink(p.id)}>
-                <Link2 size={15} /> Copy link
-              </Button>
-            </div>
+            <span className="text-[13px] text-text-secondary">
+              {p.commentCount} {p.commentCount === 1 ? 'comment' : 'comments'}
+            </span>
+            <Button variant="outline" size="sm" onClick={onShare} className="ml-auto">
+              <Share2 size={15} /> Share
+            </Button>
           </div>
         )}
+
+        {published && <CommentsSection postId={p.id} total={p.commentCount} onReport={onReport} />}
       </div>
 
       {viewing !== null && (

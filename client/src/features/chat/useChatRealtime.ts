@@ -30,6 +30,9 @@ export function useChatRealtime(myId: string | undefined) {
       if (connectedBefore) {
         void qc.invalidateQueries({ queryKey: chatKeys.conversations });
         void qc.invalidateQueries({ queryKey: ['messages'] });
+      } else if (qc.getQueryState(chatKeys.conversations)?.status === 'success') {
+        // First connection, but the list loaded before it: catch anything sent in between.
+        void qc.invalidateQueries({ queryKey: chatKeys.conversations });
       }
       connectedBefore = true;
     });

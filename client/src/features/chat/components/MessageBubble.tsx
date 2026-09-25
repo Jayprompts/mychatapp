@@ -4,7 +4,10 @@ import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/cn';
 import { formatTime } from '@/lib/time';
 import type { Message, UserSummary } from '../types';
+import { PostLinkPreview } from '@/features/blog/components/PostLinkPreview';
+import { sharedPostId } from '../linkify';
 import { ImageBubble } from './ImageBubble';
+import { MessageText } from './MessageText';
 import { VoiceBubble } from './VoiceBubble';
 
 export type BubblePosition = { first: boolean; last: boolean };
@@ -43,6 +46,7 @@ export function MessageBubble(props: MessageBubbleProps) {
   const deleted = !!message.deletedAt;
   const interactive = !deleted && !message.status; // confirmed, not unsent
   const bubbleRef = useRef<HTMLDivElement>(null);
+  const sharedPost = message.text && !deleted ? sharedPostId(message.text) : null; // a Grove post link → preview card
 
   const openActions = () => {
     if (interactive && bubbleRef.current) props.onOpenActions?.(message, bubbleRef.current.getBoundingClientRect());
@@ -173,12 +177,13 @@ export function MessageBubble(props: MessageBubbleProps) {
                       sending && message.type === 'text' && 'opacity-70',
                     )}
                   >
-                    {message.text}
+                    <MessageText text={message.text} mine={mine} />
                     {message.editedAt && (
                       <span className={cn('ml-1.5 text-[11px]', mine ? 'text-white/70' : 'text-text-secondary')}>(edited)</span>
                     )}
                   </div>
                 )}
+                {message.text && sharedPost && <PostLinkPreview postId={sharedPost} />}
               </>
             )}
           </div>

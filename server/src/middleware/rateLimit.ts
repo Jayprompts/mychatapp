@@ -29,3 +29,17 @@ export const postWriteLimiter = rateLimit({
   limit: 30,
   ...tooMany("You're creating posts too quickly. Try again in a while."),
 });
+
+// Comments: 30 per 10 minutes per IP — plenty for a lively thread, useless for a spam bot.
+export const commentLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  limit: 30,
+  ...tooMany("You're commenting too quickly. Take a breath and try again in a few minutes."),
+});
+
+// Reports: 20 per hour per IP.
+export const reportLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 20,
+  ...tooMany('Too many reports from this network. Try again later.'),
+});

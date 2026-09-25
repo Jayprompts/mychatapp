@@ -1,4 +1,6 @@
 import { Bookmark } from '../models/Bookmark.js';
+import { Comment } from '../models/Comment.js';
+import { CommentLike } from '../models/CommentLike.js';
 import { Post, type PostDoc } from '../models/Post.js';
 import { PostLike } from '../models/PostLike.js';
 import { USER_SUMMARY_FIELDS, User, toUserSummary, type UserDoc } from '../models/User.js';
@@ -113,9 +115,16 @@ export async function buildPostDetail(p: PostDoc, viewer: UserDoc) {
   };
 }
 
-// Post + its likes, bookmarks and files. (Comments join in Phase 6b.)
+// Post + its likes, bookmarks, comments and files. (Reports stay, for the moderators' records.)
 export async function destroyPost(p: PostDoc) {
   const keys = [p.coverKey, ...p.images.map((i) => i.key)].filter((k): k is string => !!k);
-  await Promise.all([PostLike.deleteMany({ post: p._id }), Bookmark.deleteMany({ post: p._id }), Post.deleteOne({ _id: p._id })]);
+  const commentIds = await Comment.find({ post: p._id }).distinct('_id');
+  await Promise.all([
+    PostLike.deleteMany({ post: p._id }),
+    Bookmark.deleteMany({ post: p._id }),
+    CommentLike.deleteMany({ comment: { $in: commentIds } }),
+    Comment.deleteMany({ post: p._id }),
+    Post.deleteOne({ _id: p._id }),
+  ]);
   await Promise.all(keys.map(deleteMedia));
 }

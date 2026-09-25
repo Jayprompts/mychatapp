@@ -64,3 +64,8 @@ export function Markdown({ source, className }: { source: string; className?: st
     </div>
   );
 }
+
+// One line of inline formatting (bold, italic, code, links) — for comments.
+export function InlineText({ text, className }: { text: string; className?: string }) {
+  return <p className={cn('break-words whitespace-pre-wrap', className)}>{renderInline(parseInline(text))}</p>;
+}

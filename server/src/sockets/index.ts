@@ -5,6 +5,7 @@ import mongoose from 'mongoose';
 import { env } from '../config/env.js';
 import { authenticateToken } from '../middleware/auth.js';
 import { Conversation } from '../models/Conversation.js';
+import { Post } from '../models/Post.js';
 import { User } from '../models/User.js';
 import { addConnection, removeConnection } from '../services/presence.js';
 import { AUTH_COOKIE } from '../utils/jwt.js';
@@ -33,6 +34,12 @@ export function emitToUsers<E extends keyof ServerToClientEvents>(
 ) {
   if (!io || userIds.length === 0) return;
   io.to(userIds.map(userRoom)).emit(event, ...args);
+}
+
+// Everyone currently reading a post (joined via 'post:watch').
+const postRoom = (postId: string) => `post:${postId}`;
+export function emitToPost<E extends keyof ServerToClientEvents>(postId: string, event: E, ...args: Parameters<ServerToClientEvents[E]>) {
+  io?.to(postRoom(postId)).emit(event, ...args);
 }
 
 // Kick every live socket of a user (used by logout-all; bans will use it too).
@@ -95,6 +102,22 @@ export function initSocket(server: http.Server) {
       } catch (err) {
         console.error('typing handler failed:', err);
       }
+    });
+
+    // Reading a post: join its room for live comments — only if this user may see it.
+    socket.on('post:watch', async (payload) => {
+      try {
+        const postId = payload?.postId;
+        if (typeof postId !== 'string' || !mongoose.isValidObjectId(postId)) return;
+        const post = await Post.findById(postId).select('status author').lean();
+        if (!post || (post.status !== 'published' && post.author.toString() !== userId)) return;
+        void socket.join(postRoom(postId));
+      } catch (err) {
+        console.error('post:watch failed:', err);
+      }
+    });
+    socket.on('post:unwatch', (payload) => {
+      if (typeof payload?.postId === 'string') void socket.leave(postRoom(payload.postId));
     });
 
     socket.on('disconnect', async () => {
