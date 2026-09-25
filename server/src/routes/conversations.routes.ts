@@ -3,12 +3,15 @@ import { rateLimit } from 'express-rate-limit';
 import multer from 'multer';
 import * as chat from '../controllers/conversations.controller.js';
 import * as groups from '../controllers/groups.controller.js';
+import * as messages from '../controllers/messages.controller.js';
 import { requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { MEDIA_LIMITS } from '../services/media.js';
 import {
   addMembersSchema,
   createGroupSchema,
+  editMessageSchema,
+  reactionSchema,
   openDirectSchema,
   sendMessageSchema,
   setRoleSchema,
@@ -49,6 +52,10 @@ router.patch('/:id/members/:userId', validate(setRoleSchema), groups.setMemberRo
 router.get('/:id/messages', chat.listMessages);
 router.post('/:id/messages', sendLimiter, validate(sendMessageSchema), chat.sendMessage);
 router.post('/:id/media', sendLimiter, upload.single('file'), chat.sendMediaMessage);
+router.patch('/:id/messages/:messageId', sendLimiter, validate(editMessageSchema), messages.editMessage);
+router.delete('/:id/messages/:messageId', messages.deleteMessage);
+router.put('/:id/messages/:messageId/reaction', sendLimiter, validate(reactionSchema), messages.react);
+router.delete('/:id/messages/:messageId/reaction', messages.unreact);
 router.post('/:id/read', chat.markRead);
 
 export default router;

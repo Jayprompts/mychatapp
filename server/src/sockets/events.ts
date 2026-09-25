@@ -9,6 +9,7 @@ export type NewMessagePayload = { message: PublicMessage };
 
 export interface ServerToClientEvents {
   'message:new': (payload: NewMessagePayload) => void;
+  'message:updated': (payload: NewMessagePayload) => void; // reactions, edits, unsends
   'conversation:read': (payload: ReadPayload) => void;
   'presence:update': (payload: PresencePayload) => void;
   typing: (payload: TypingPayload) => void;

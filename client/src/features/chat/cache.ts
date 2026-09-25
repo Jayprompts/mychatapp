@@ -1,5 +1,5 @@
 import type { InfiniteData, QueryClient } from '@tanstack/react-query';
-import { previewFor } from './preview';
+import { DELETED_PREVIEW, previewFor } from './preview';
 import type { Conversation, Message, MessagesPage } from './types';
 
 // Every change to chat data — from the API, an optimistic send, or a socket event — goes through
@@ -105,4 +105,35 @@ export function removeConversation(qc: QueryClient, conversationId: string) {
   qc.setQueryData<Conversation[]>(chatKeys.conversations, (old) => old?.filter((c) => c.id !== conversationId));
   qc.removeQueries({ queryKey: chatKeys.messages(conversationId) });
   qc.removeQueries({ queryKey: ['sharedMedia', conversationId] });
+}
+
+/**
+ * A message was reacted to, edited or unsent: replace it, refresh any replies quoting it,
+ * and update the chat-list preview if it's the latest message.
+ */
+export function applyMessageUpdate(qc: QueryClient, message: Message) {
+  const preview = message.deletedAt ? DELETED_PREVIEW : previewFor(message.type, message.text);
+
+  qc.setQueryData<MessagesCache>(chatKeys.messages(message.conversationId), (old) => {
+    if (!old) return old;
+    return {
+      ...old,
+      pages: old.pages.map((page) => ({
+        ...page,
+        messages: page.messages.map((m) => {
+          if (m.id === message.id) return m.local ? { ...message, local: { url: m.local.url } } : message;
+          if (m.replyTo?.id === message.id) {
+            return { ...m, replyTo: { ...m.replyTo, preview: message.deletedAt ? '' : preview, deleted: !!message.deletedAt } };
+          }
+          return m;
+        }),
+      })),
+    };
+  });
+
+  qc.setQueryData<Conversation[]>(chatKeys.conversations, (old) =>
+    old?.map((c) =>
+      c.id === message.conversationId && c.lastMessage?.id === message.id ? { ...c, lastMessage: { ...c.lastMessage, preview } } : c,
+    ),
+  );
 }

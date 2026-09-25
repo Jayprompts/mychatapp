@@ -5,9 +5,24 @@ export const openDirectSchema = z.object({
   userId: objectIdSchema,
 });
 
+const messageText = z.string().trim().min(1, 'Message cannot be empty').max(4000, 'Message is too long (max 4000 characters)');
+
 export const sendMessageSchema = z.object({
-  text: z.string().trim().min(1, 'Message cannot be empty').max(4000, 'Message is too long (max 4000 characters)'),
+  text: messageText,
   clientId: z.string().trim().min(8).max(64).optional(),
+  replyTo: objectIdSchema.optional(),
+});
+
+export const editMessageSchema = z.object({ text: messageText });
+
+// Any single emoji (incl. flags 🇳🇬, skin tones 🙏🏽 and combined ones like 👩🏽‍💻), nothing else.
+export const reactionSchema = z.object({
+  emoji: z
+    .string()
+    .max(16)
+    .regex(
+      /^(?:\p{Regional_Indicator}{2}|(\p{Extended_Pictographic}|\p{Emoji_Presentation})(\p{Emoji_Modifier}|\uFE0F|\u200D(\p{Extended_Pictographic}|\p{Emoji_Presentation})|\uFE0F)*)$/u,
+      'Pick an emoji'),
 });
 
 // Multipart fields arrive as strings, so numbers/JSON are coerced here.
@@ -15,6 +30,7 @@ export const mediaMessageSchema = z.object({
   kind: z.enum(['image', 'voice']),
   clientId: z.string().trim().min(8).max(64).optional(),
   text: z.string().trim().max(4000, 'Caption is too long').optional(),
+  replyTo: objectIdSchema.optional(),
   durationMs: z.coerce.number().int().min(300, 'Recording is too short').max(10 * 60 * 1000).optional(),
   waveform: z
     .string()
@@ -42,6 +58,8 @@ export const userSearchQuerySchema = z.object({
 
 export type OpenDirectInput = z.infer<typeof openDirectSchema>;
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
+export type EditMessageInput = z.infer<typeof editMessageSchema>;
+export type ReactionInput = z.infer<typeof reactionSchema>;
 
 const groupName = z.string().trim().min(1, 'Give the group a name').max(80, 'Group name is too long (max 80)');
 const groupDescription = z.string().trim().max(300, 'Description is too long (max 300)');

@@ -3,7 +3,15 @@ import { useQueryClient } from '@tanstack/react-query';
 import { getSocket } from '@/lib/socket';
 import { meQueryKey } from '@/features/auth/api';
 import { api } from '@/lib/api';
-import { applyMessageToList, applyRead, chatKeys, removeConversation, upsertConversation, upsertMessage } from './cache';
+import {
+  applyMessageToList,
+  applyMessageUpdate,
+  applyRead,
+  chatKeys,
+  removeConversation,
+  upsertConversation,
+  upsertMessage,
+} from './cache';
 import type { Conversation } from './types';
 import { presenceStore, resetLiveState, setTyping } from './liveState';
 
@@ -37,6 +45,12 @@ export function useChatRealtime(myId: string | undefined) {
       if (message.type === 'image') void qc.invalidateQueries({ queryKey: ['sharedMedia', message.conversationId] });
       const known = applyMessageToList(qc, message, myId);
       if (!known) void qc.invalidateQueries({ queryKey: chatKeys.conversations }); // someone started a new chat
+    });
+
+    // Reactions, edits and unsends.
+    socket.on('message:updated', ({ message }) => {
+      applyMessageUpdate(qc, message);
+      if (message.deletedAt) void qc.invalidateQueries({ queryKey: ['sharedMedia', message.conversationId] });
     });
 
     socket.on('conversation:read', ({ conversationId, userId, lastReadAt }) => {

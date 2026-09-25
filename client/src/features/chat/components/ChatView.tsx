@@ -9,7 +9,7 @@ import { cn } from '@/lib/cn';
 import { formatLastSeen } from '@/lib/time';
 import { useConversation, useMarkRead } from '../api';
 import { usePresence, useTypingUserIds } from '../liveState';
-import type { Conversation } from '../types';
+import type { Conversation, Message } from '../types';
 import { ChatInfoPanel } from './ChatInfoPanel';
 import { Composer } from './Composer';
 import { ConversationAvatar } from './ConversationAvatar';
@@ -56,6 +56,10 @@ function ChatViewLoaded({ conversation, myId }: { conversation: Conversation; my
   }, [conversation.unreadCount, marking, markAsRead]);
 
   const [infoOpen, setInfoOpen] = useState(false);
+  const [replyTo, setReplyTo] = useState<Message | null>(null);
+  const [editing, setEditing] = useState<Message | null>(null);
+  const nameOf = (userId: string) =>
+    userId === myId ? 'yourself' : (conversation.members.find((m) => m.user.id === userId)?.user.displayName ?? 'message');
 
   return (
     <div className="relative flex min-h-0 flex-1">
@@ -67,8 +71,27 @@ function ChatViewLoaded({ conversation, myId }: { conversation: Conversation; my
           infoOpen={infoOpen}
           onToggleInfo={() => setInfoOpen((o) => !o)}
         />
-        <MessageList conversation={conversation} myId={myId} typingUserIds={typingUserIds} />
-        <Composer conversationId={conversation.id} />
+        <MessageList
+          conversation={conversation}
+          myId={myId}
+          typingUserIds={typingUserIds}
+          onReply={(m) => {
+            setEditing(null);
+            setReplyTo(m);
+          }}
+          onEdit={(m) => {
+            setReplyTo(null);
+            setEditing(m);
+          }}
+        />
+        <Composer
+          conversationId={conversation.id}
+          replyTo={replyTo}
+          replyToName={replyTo ? nameOf(replyTo.senderId) : undefined}
+          onCancelReply={() => setReplyTo(null)}
+          editing={editing}
+          onDoneEditing={() => setEditing(null)}
+        />
       </div>
 
       {/* Chat info: side column on large screens, full-screen sheet below that */}

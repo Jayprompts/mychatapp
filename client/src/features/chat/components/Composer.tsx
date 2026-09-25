@@ -1,9 +1,13 @@
 import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react';
-import { ImagePlus, Mic, MicOff, SendHorizontal, Trash2, X } from 'lucide-react';
+import { Check, ImagePlus, Mic, MicOff, Pencil, Reply, SendHorizontal, Trash2, X } from 'lucide-react';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/cn';
 import { ImagePrepError, prepareImage } from '@/lib/image';
-import { useSendMedia, useSendMessage } from '../api';
+import { errorMessage } from '@/lib/api';
+import { toast } from '@/lib/toast';
+import { quoteOf, useEditMessage, useSendMedia, useSendMessage } from '../api';
+import { previewFor } from '../preview';
+import type { Message } from '../types';
 import { MAX_RECORDING_MS, useVoiceRecorder, type Recording } from '../useVoiceRecorder';
 
 const TYPING_RESEND_MS = 3000; // re-announce "typing" at most every 3s
@@ -17,8 +21,18 @@ function formatClock(ms: number) {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-export function Composer({ conversationId }: { conversationId: string }) {
+type ComposerProps = {
+  conversationId: string;
+  replyTo: Message | null; // "Replying to …" bar
+  replyToName?: string;
+  onCancelReply: () => void;
+  editing: Message | null; // "Editing message" bar — text is loaded into the box
+  onDoneEditing: () => void;
+};
+
+export function Composer({ conversationId, replyTo, replyToName, onCancelReply, editing, onDoneEditing }: ComposerProps) {
   const [text, setText] = useState('');
+  const edit = useEditMessage(conversationId);
   const [notice, setNotice] = useState<string | null>(null);
   const send = useSendMessage(conversationId);
   const sendMedia = useSendMedia(conversationId);
@@ -29,7 +43,8 @@ export function Composer({ conversationId }: { conversationId: string }) {
 
   const sendRecording = (r: Recording) => {
     if (r.durationMs < MIN_VOICE_MS) return setNotice('That recording was too short — tap the mic and speak, then tap send.');
-    void sendMedia({ kind: 'voice', blob: r.blob, durationMs: r.durationMs, waveform: r.waveform });
+    void sendMedia({ kind: 'voice', blob: r.blob, durationMs: r.durationMs, waveform: r.waveform, replyTo: quoteOf(replyTo) });
+    onCancelReply();
   };
   const recorder = useVoiceRecorder({ onAutoStop: sendRecording });
   const recording = recorder.state.status === 'recording' || recorder.state.status === 'requesting';
@@ -66,13 +81,39 @@ export function Composer({ conversationId }: { conversationId: string }) {
     idleTimer.current = setTimeout(stopTyping, TYPING_IDLE_MS);
   };
 
+  // Starting an edit loads the message into the box; starting a reply focuses the box.
+  const [editingId, setEditingId] = useState<string | null>(null);
+  if ((editing?.id ?? null) !== editingId) {
+    setEditingId(editing?.id ?? null);
+    setText(editing ? editing.text : '');
+  }
+  useEffect(() => {
+    if (editing || replyTo) textareaRef.current?.focus();
+  }, [editing, replyTo]);
+
+  const cancelEdit = () => {
+    onDoneEditing();
+    setText('');
+  };
+
   const submitText = () => {
     const value = text.trim();
     if (!value) return;
+
+    if (editing) {
+      if (value === editing.text) return cancelEdit();
+      edit.mutate(
+        { messageId: editing.id, text: value },
+        { onSuccess: cancelEdit, onError: (err) => toast(errorMessage(err), 'error') },
+      );
+      return;
+    }
+
     setText('');
     lastTypingSent.current = 0; // sending already clears "typing" on the other side
     clearTimeout(idleTimer.current);
-    void send(value);
+    void send(value, undefined, replyTo);
+    onCancelReply();
     textareaRef.current?.focus();
   };
 
@@ -84,7 +125,8 @@ export function Composer({ conversationId }: { conversationId: string }) {
     for (const file of images.slice(0, MAX_PHOTOS_AT_ONCE)) {
       try {
         const prepared = await prepareImage(file);
-        void sendMedia({ kind: 'image', ...prepared });
+        void sendMedia({ kind: 'image', ...prepared, replyTo: quoteOf(replyTo) });
+        onCancelReply();
       } catch (err) {
         setNotice(err instanceof ImagePrepError ? err.message : `"${file.name}" couldn't be sent.`);
       }
@@ -113,7 +155,14 @@ export function Composer({ conversationId }: { conversationId: string }) {
   }, [recording, recorder]);
 
   // Enter sends, Shift+Enter adds a new line (ignored while an IME is composing, e.g. Japanese input).
+  // Esc cancels an edit or reply.
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Escape' && (editing || replyTo)) {
+      e.preventDefault();
+      if (editing) cancelEdit();
+      else onCancelReply();
+      return;
+    }
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
       submitText();
@@ -146,6 +195,28 @@ export function Composer({ conversationId }: { conversationId: string }) {
         <Banner onDismiss={() => setNotice(null)}>
           <span>{notice}</span>
         </Banner>
+      )}
+
+      {(editing || replyTo) && !recording && (
+        <div className="flex items-center gap-3 border-b border-border px-4 py-2">
+          <span className="text-primary">{editing ? <Pencil size={18} /> : <Reply size={18} />}</span>
+          <div className="min-w-0 flex-1 border-l-[3px] border-primary/50 pl-2.5">
+            <p className="text-xs font-semibold text-primary">
+              {editing ? 'Editing message' : `Replying to ${replyToName ?? 'message'}`}
+            </p>
+            <p className="truncate text-[13px] text-text-secondary">
+              {editing ? editing.text : replyTo ? previewFor(replyTo.type, replyTo.text) : ''}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={editing ? cancelEdit : onCancelReply}
+            aria-label={editing ? 'Cancel editing' : 'Cancel reply'}
+            className="flex size-8 shrink-0 items-center justify-center rounded-full text-text-secondary hover:bg-bg hover:text-text-primary"
+          >
+            <X size={18} />
+          </button>
+        </div>
       )}
 
       <div className="flex items-end gap-1.5 px-2 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:gap-2 sm:px-4">
@@ -187,14 +258,16 @@ export function Composer({ conversationId }: { conversationId: string }) {
         ) : (
           // ── Normal composer ──
           <>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              aria-label="Send photos"
-              className={cn(iconBtn, 'text-primary hover:bg-primary/8')}
-            >
-              <ImagePlus size={22} />
-            </button>
+            {!editing && (
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="Send photos"
+                className={cn(iconBtn, 'text-primary hover:bg-primary/8')}
+              >
+                <ImagePlus size={22} />
+              </button>
+            )}
             <input
               ref={fileInputRef}
               type="file"
@@ -219,7 +292,17 @@ export function Composer({ conversationId }: { conversationId: string }) {
               aria-label="Message"
               className="max-h-[140px] min-h-11 min-w-0 flex-1 resize-none rounded-[22px] border-[1.5px] border-border bg-bg px-4 py-2.5 text-[15px] leading-snug text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-primary focus:bg-card"
             />
-            {hasText ? (
+            {editing ? (
+              <button
+                type="button"
+                onClick={submitText}
+                disabled={!hasText || edit.isPending}
+                aria-label="Save edit"
+                className={cn(iconBtn, 'gradient-brand text-white shadow-brand hover:opacity-95 active:scale-95 disabled:opacity-50')}
+              >
+                <Check size={20} strokeWidth={2.5} />
+              </button>
+            ) : hasText ? (
               <button
                 type="button"
                 onClick={submitText}

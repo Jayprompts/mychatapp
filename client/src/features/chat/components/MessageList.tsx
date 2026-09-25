@@ -1,25 +1,42 @@
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Lightbox } from '@/components/ui/Lightbox';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { errorMessage } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import { formatDayLabel, isSameDay } from '@/lib/time';
-import { useMessages, useSendMedia, useSendMessage } from '../api';
+import { useDeleteMessage, useMessages, useReact, useSendMedia, useSendMessage } from '../api';
 import { formatSystemEvent } from '../preview';
 import type { Conversation, Message } from '../types';
+import { MessageActionMenu } from './MessageActionMenu';
 import { MessageBubble, type BubblePosition } from './MessageBubble';
+import { ReactionsSheet } from './ReactionsSheet';
 import { TypingBubble } from './TypingBubble';
 
 const GROUP_GAP_MS = 5 * 60 * 1000; // messages within 5 min from the same person form one run
 const NEAR_BOTTOM_PX = 150;
 
-type Props = { conversation: Conversation; myId: string; typingUserIds: string[] };
+type Props = {
+  conversation: Conversation;
+  myId: string;
+  typingUserIds: string[];
+  onReply: (message: Message) => void;
+  onEdit: (message: Message) => void;
+};
 
-export function MessageList({ conversation, myId, typingUserIds }: Props) {
+export function MessageList({ conversation, myId, typingUserIds, onReply, onEdit }: Props) {
   const query = useMessages(conversation.id);
   const send = useSendMessage(conversation.id);
   const sendMedia = useSendMedia(conversation.id);
   const [lightboxAt, setLightboxAt] = useState<number | null>(null);
+  const [actionsFor, setActionsFor] = useState<{ message: Message; anchor: DOMRect } | null>(null);
+  const [reactionsFor, setReactionsFor] = useState<string | null>(null); // message id
+  const [deleting, setDeleting] = useState<Message | null>(null);
+  const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const react = useReact(conversation.id);
+  const unsend = useDeleteMessage(conversation.id);
   const scrollRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
 
@@ -44,6 +61,18 @@ export function MessageList({ conversation, myId, typingUserIds }: Props) {
   };
 
   const members = useMemo(() => new Map(conversation.members.map((m) => [m.user.id, m])), [conversation.members]);
+  const byId = useMemo(() => new Map(messages.map((m) => [m.id, m])), [messages]);
+  const nameOf = (userId: string) => members.get(userId)?.user.displayName;
+  const myReactionOn = (m: Message) => m.reactions?.find((r) => r.userIds.includes(myId))?.emoji ?? null;
+
+  const copy = async (m: Message) => {
+    try {
+      await navigator.clipboard.writeText(m.text);
+      toast('Copied');
+    } catch {
+      toast("Couldn't copy", 'error');
+    }
+  };
   const isGroup = conversation.type === 'group';
 
   // Read receipt on my latest message: "Seen" once every other member has read it,
@@ -110,6 +139,28 @@ export function MessageList({ conversation, myId, typingUserIds }: Props) {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  // Tap a quote → scroll to the original, loading older pages if it isn't on screen yet.
+  const jumpTo = useCallback(
+    async (messageId: string) => {
+      const frame = () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+      let more = hasNextPage;
+      for (let i = 0; i < 15; i++) {
+        const el = document.getElementById(`msg-${messageId}`);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          setHighlightedId(messageId);
+          setTimeout(() => setHighlightedId((h) => (h === messageId ? null : h)), 1600);
+          return;
+        }
+        if (!more) break;
+        more = (await fetchNextPage()).hasNextPage;
+        await frame();
+      }
+      toast("The original message isn't available");
+    },
+    [hasNextPage, fetchNextPage],
+  );
+
   if (query.isPending) return <HistorySkeleton />;
 
   if (query.isError) {
@@ -165,6 +216,13 @@ export function MessageList({ conversation, myId, typingUserIds }: Props) {
             <MessageBubble
               message={m}
               mine={m.senderId === myId}
+              myId={myId}
+              quotedName={m.replyTo ? nameOf(m.replyTo.senderId) : undefined}
+              highlighted={highlightedId === m.id}
+              onOpenActions={(message, anchor) => setActionsFor({ message, anchor })}
+              onReply={onReply}
+              onJumpTo={jumpTo}
+              onShowReactions={(message) => setReactionsFor(message.id)}
               sender={members.get(m.senderId)?.user}
               showSenderName={isGroup}
               position={position(i)}
@@ -178,6 +236,47 @@ export function MessageList({ conversation, myId, typingUserIds }: Props) {
       )}
 
       {typingUserIds.length > 0 && <TypingBubble users={typingUserIds.map((id) => members.get(id)?.user)} />}
+
+      {actionsFor && (
+        <MessageActionMenu
+          message={actionsFor.message}
+          mine={actionsFor.message.senderId === myId}
+          myReaction={myReactionOn(actionsFor.message)}
+          anchor={actionsFor.anchor}
+          onClose={() => setActionsFor(null)}
+          onReact={(emoji) => react.mutate({ message: actionsFor.message, emoji })}
+          onReply={() => onReply(actionsFor.message)}
+          onCopy={() => void copy(actionsFor.message)}
+          onEdit={() => onEdit(actionsFor.message)}
+          onDelete={() => setDeleting(actionsFor.message)}
+        />
+      )}
+
+      <ReactionsSheet
+        message={reactionsFor ? (byId.get(reactionsFor) ?? null) : null}
+        members={members}
+        myId={myId}
+        onClose={() => setReactionsFor(null)}
+        onRemoveMine={(message) => react.mutate({ message, emoji: null })}
+      />
+
+      <ConfirmDialog
+        open={deleting !== null}
+        title="Unsend this message?"
+        body={
+          deleting?.media
+            ? 'It will be removed for everyone in this chat, and the file will be deleted.'
+            : 'It will be removed for everyone in this chat.'
+        }
+        confirmLabel="Unsend"
+        loading={unsend.isPending}
+        error={unsend.isError ? errorMessage(unsend.error) : null}
+        onCancel={() => {
+          setDeleting(null);
+          unsend.reset();
+        }}
+        onConfirm={() => deleting && unsend.mutate(deleting.id, { onSuccess: () => setDeleting(null) })}
+      />
 
       {lightboxAt !== null && lightboxAt >= 0 && (
         <Lightbox

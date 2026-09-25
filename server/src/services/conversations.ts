@@ -1,4 +1,5 @@
 import { Conversation, type ConversationDoc } from '../models/Conversation.js';
+import { Types } from 'mongoose';
 import { Message, previewFor, toPublicMessage, type MessageDoc, type SystemEventKind } from '../models/Message.js';
 import type { UserDoc } from '../models/User.js';
 import { emitToUsers } from '../sockets/index.js';
@@ -100,4 +101,31 @@ export function emitConversationUpdated(conversation: ConversationDoc, extraUser
   emitToUsers([...memberIds(conversation), ...extraUserIds], 'conversation:updated', {
     conversationId: conversation._id.toString(),
   });
+}
+
+// A message inside a conversation the user belongs to (404 otherwise).
+export async function findMemberMessage(conversationId: unknown, messageId: unknown, userId: string) {
+  const conversation = await findMemberConversation(conversationId, userId);
+  const id = parseObjectId(messageId, 'message id');
+  const message = await Message.findOne({ _id: id, conversation: conversation._id });
+  if (!message) throw new AppError(404, 'Message not found');
+  return { conversation, message };
+}
+
+// Snapshot of the message being replied to (must be in the same conversation and not deleted).
+export async function buildReplySnapshot(conversationId: Types.ObjectId, replyToId: string | undefined) {
+  if (!replyToId) return null;
+  const original = await Message.findOne({ _id: replyToId, conversation: conversationId, deletedAt: null, type: { $ne: 'system' } });
+  if (!original) throw new AppError(400, "You can't reply to that message");
+  return {
+    messageId: original._id,
+    sender: original.sender,
+    type: original.type,
+    preview: previewFor(original.type, original.text),
+  };
+}
+
+// Push an edited / unsent / reacted-to message to everyone in the conversation.
+export function emitMessageUpdated(conversation: ConversationDoc, message: MessageDoc) {
+  emitToUsers(memberIds(conversation), 'message:updated', { message: toPublicMessage(message) });
 }

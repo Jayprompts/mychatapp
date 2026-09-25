@@ -7,7 +7,7 @@ import { authUser } from '../middleware/auth.js';
 import { buildConversationView, buildConversationViews } from '../services/conversationView.js';
 import { MEDIA_LIMITS, deleteMedia, storeImage, storeVoice, type StoredMedia } from '../services/media.js';
 import { emitToUsers } from '../sockets/index.js';
-import { findMemberConversation, memberIds, publishNewMessage } from '../services/conversations.js';
+import { buildReplySnapshot, findMemberConversation, memberIds, publishNewMessage } from '../services/conversations.js';
 import { AppError } from '../utils/AppError.js';
 import {
   mediaMessageSchema,
@@ -95,7 +95,7 @@ async function findRetry(senderId: string, clientId: string | undefined) {
 export const sendMessage: RequestHandler = async (req, res) => {
   const me = authUser(req)._id.toString();
   const conversation = await findMemberConversation(req.params.id, me);
-  const { text, clientId } = req.body as SendMessageInput;
+  const { text, clientId, replyTo } = req.body as SendMessageInput;
 
   const existing = await findRetry(me, clientId);
   if (existing) {
@@ -103,7 +103,14 @@ export const sendMessage: RequestHandler = async (req, res) => {
     return;
   }
 
-  const message = await Message.create({ conversation: conversation._id, sender: me, type: 'text', text, clientId });
+  const message = await Message.create({
+    conversation: conversation._id,
+    sender: me,
+    type: 'text',
+    text,
+    clientId,
+    replyTo: await buildReplySnapshot(conversation._id, replyTo),
+  });
   res.status(201).json({ success: true, data: { message: await publishNewMessage(conversation, message) } });
 };
 
@@ -116,7 +123,7 @@ export const sendMediaMessage: RequestHandler = async (req, res) => {
 
   const parsed = mediaMessageSchema.safeParse(req.body ?? {});
   if (!parsed.success) throw new AppError(400, 'Validation failed', z.flattenError(parsed.error).fieldErrors);
-  const { kind, clientId, text, durationMs, waveform } = parsed.data;
+  const { kind, clientId, text, durationMs, waveform, replyTo } = parsed.data;
   if (!req.file) throw new AppError(400, 'No file uploaded');
 
   const existing = await findRetry(me, clientId);
@@ -124,6 +131,8 @@ export const sendMediaMessage: RequestHandler = async (req, res) => {
     res.json({ success: true, data: { message: toPublicMessage(existing) } });
     return;
   }
+
+  const replySnapshot = await buildReplySnapshot(conversation._id, replyTo); // validate before storing the file
 
   let media: StoredMedia;
   if (kind === 'image') {
@@ -142,6 +151,7 @@ export const sendMediaMessage: RequestHandler = async (req, res) => {
       text: kind === 'image' ? (text ?? '') : '',
       media,
       clientId,
+      replyTo: replySnapshot,
     });
   } catch (err) {
     await deleteMedia(media.key); // don't leave an orphaned file behind

@@ -1,6 +1,10 @@
 import type { MessageType, SystemEvent } from './types';
 
 // Same wording as the server's previewFor() (chat list, notifications).
+export const DELETED_PREVIEW = 'This message was deleted';
+export const EDIT_WINDOW_MS = 15 * 60 * 1000;
+export const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+
 export function previewFor(type: MessageType, text: string): string {
   if (type === 'voice') return '🎤 Voice message';
   if (type === 'image') return text ? `📷 ${text.slice(0, 110)}` : '📷 Photo';

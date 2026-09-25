@@ -59,6 +59,9 @@ export type MessageMedia = {
   height: number | null; // image
 };
 
+export type ReplyQuote = { id: string; senderId: string; type: string; preview: string; deleted: boolean };
+export type ReactionSummary = { emoji: string; count: number; userIds: string[] };
+
 export type Message = {
   id: string;
   conversationId: string;
@@ -67,6 +70,8 @@ export type Message = {
   text: string; // message text, or photo caption
   media: MessageMedia | null;
   system?: SystemEvent | null;
+  replyTo?: ReplyQuote | null;
+  reactions?: ReactionSummary[];
   clientId: string | null;
   createdAt: string;
   editedAt: string | null;
@@ -86,6 +91,7 @@ export type ReadPayload = { conversationId: string; userId: string; lastReadAt: 
 
 export interface ServerToClientEvents {
   'message:new': (payload: { message: Message }) => void;
+  'message:updated': (payload: { message: Message }) => void;
   'conversation:read': (payload: ReadPayload) => void;
   'presence:update': (payload: PresencePayload) => void;
   typing: (payload: TypingPayload) => void;

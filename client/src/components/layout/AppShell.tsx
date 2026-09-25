@@ -2,6 +2,7 @@ import { Link, NavLink, Outlet, useMatch } from 'react-router';
 import { MessageCircle, Newspaper, User, Users, type LucideIcon } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { LogoMark } from '@/components/ui/Logo';
+import { Toaster } from '@/components/ui/Toaster';
 import { useMe } from '@/features/auth/api';
 import { useConversations } from '@/features/chat/api';
 import { useChatRealtime } from '@/features/chat/useChatRealtime';
@@ -72,6 +73,8 @@ export function AppShell() {
       >
         <Outlet />
       </main>
+
+      <Toaster />
 
       {/* Bottom tab bar — mobile */}
       {!inConversation && (
