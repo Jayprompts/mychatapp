@@ -1,7 +1,6 @@
 import type { RequestHandler } from 'express';
 import { Community } from '../models/Community.js';
 import { Conversation, MAX_COMMUNITY_MEMBERS, MAX_GROUP_MEMBERS, type ConversationDoc } from '../models/Conversation.js';
-import { Message } from '../models/Message.js';
 import { User } from '../models/User.js';
 import { authUser } from '../middleware/auth.js';
 import { buildConversationView } from '../services/conversationView.js';
@@ -12,9 +11,8 @@ import {
   postSystemEvent,
   roleOf,
 } from '../services/conversations.js';
-import { destroyCommunityData, syncCommunity } from '../services/communities.js';
-import { deleteMedia } from '../services/media.js';
-import { emitToUsers } from '../sockets/index.js';
+import { syncCommunity } from '../services/communities.js';
+import { removeFromGroup } from '../services/membership.js';
 import { AppError } from '../utils/AppError.js';
 import { parseObjectId } from '../utils/objectId.js';
 import type { AddMembersInput, CreateGroupInput, SetRoleInput, UpdateGroupInput } from '../validators/chat.schemas.js';
@@ -146,41 +144,8 @@ export const removeMember: RequestHandler = async (req, res) => {
   }
 
   const target = leaving ? me : await User.findById(targetId);
-  await Conversation.updateOne({ _id: group._id }, { $pull: { members: { user: targetId } } });
-  let updated = await reload(group._id);
-
-  // Last person out: delete the group (or community), its messages and files.
-  if (updated.members.length === 0 && updated.type === 'community') {
-    await destroyCommunityData(group._id);
-    emitToUsers([targetId], 'conversation:removed', { conversationId: group._id.toString() });
-    res.json({ success: true, data: { deleted: true } });
-    return;
-  }
-  if (updated.members.length === 0) {
-    const withMedia = await Message.find({ conversation: group._id, media: { $ne: null } }).select('media');
-    await Promise.all(withMedia.map((m) => (m.media ? deleteMedia(m.media.key) : null)));
-    await Message.deleteMany({ conversation: group._id });
-    await Conversation.deleteOne({ _id: group._id });
-    emitToUsers([targetId], 'conversation:removed', { conversationId: group._id.toString() });
-    res.json({ success: true, data: { deleted: true } });
-    return;
-  }
-
-  // The owner left: hand the group to the longest-serving admin, otherwise the longest-serving member.
-  if (!updated.members.some((m) => m.role === 'owner')) {
-    const byJoin = [...updated.members].sort((a, b) => a.joinedAt.getTime() - b.joinedAt.getTime());
-    const heir = byJoin.find((m) => m.role === 'admin') ?? byJoin[0];
-    await Conversation.updateOne({ _id: group._id, 'members.user': heir.user }, { $set: { 'members.$.role': 'owner' } });
-    updated = await reload(group._id);
-  }
-  await syncCommunity(updated); // member count / owner (no-op for groups)
-
-  if (leaving) await postSystemEvent(updated, me, { kind: 'left' });
-  else if (target) await postSystemEvent(updated, me, { kind: 'removed', targets: [person(target)] });
-
-  emitToUsers([targetId], 'conversation:removed', { conversationId: group._id.toString() });
-  emitConversationUpdated(updated);
-  res.json({ success: true, data: { deleted: false } });
+  const { deleted } = await removeFromGroup(group, targetId, target, me);
+  res.json({ success: true, data: { deleted } });
 };
 
 // PATCH /api/conversations/:id/members/:userId { role: 'admin' | 'member' } — owner only

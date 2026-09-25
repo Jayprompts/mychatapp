@@ -43,6 +43,9 @@ export function usePostFeed(sort: FeedSort, tag: PostTag | 'All') {
 }
 export const useSavedPosts = () => usePostList(postKeys.saved, (page) => `/posts/saved?page=${page}`);
 export const useMyPosts = () => usePostList(postKeys.mine, (page) => `/posts/mine?page=${page}`);
+// Someone's published posts, newest first (profile pages).
+export const useAuthorPosts = (authorId: string) =>
+  usePostList([...postKeys.lists, 'author', authorId], (page) => `/posts?author=${authorId}&page=${page}`);
 
 export function usePost(id: string | undefined) {
   return useQuery({

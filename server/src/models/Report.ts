@@ -1,6 +1,6 @@
 import { Schema, model, type HydratedDocument, type InferSchemaType } from 'mongoose';
 
-export const REPORT_TARGETS = ['post', 'comment'] as const; // messages and users join in later phases
+export const REPORT_TARGETS = ['post', 'comment', 'user'] as const; // messages join in a later phase
 export const REPORT_REASONS = ['Spam', 'Harassment', 'Misinformation', 'Hate speech', 'Violence', 'Other'] as const;
 export const REPORT_STATUSES = ['open', 'resolved', 'dismissed'] as const;
 

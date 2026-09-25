@@ -179,7 +179,13 @@ function Article({ post: p, onShare, onReport }: { post: PostDetail } & Actions)
         <div className="mt-5 flex items-center gap-3 border-b border-border pb-5">
           <Avatar name={authorName(p)} src={p.author?.avatarUrl ?? null} size={44} />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-[15px] font-bold text-text-primary">{authorName(p)}</p>
+            {p.author ? (
+              <Link to={`/u/${p.author.username}`} className="block truncate text-[15px] font-bold text-text-primary hover:underline">
+                {authorName(p)}
+              </Link>
+            ) : (
+              <p className="truncate text-[15px] font-bold text-text-primary">{authorName(p)}</p>
+            )}
             <p className="text-[13px] text-text-secondary">
               {published ? formatPostDate(p.publishedAt ?? p.updatedAt) : 'Not published'} · {p.readMinutes} min read
             </p>

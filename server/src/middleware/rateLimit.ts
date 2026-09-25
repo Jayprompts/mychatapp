@@ -43,3 +43,10 @@ export const reportLimiter = rateLimit({
   limit: 20,
   ...tooMany('Too many reports from this network. Try again later.'),
 });
+
+// Password-checked account changes (email, password, delete): 10 tries per 15 min per IP.
+export const sensitiveLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  ...tooMany('Too many attempts. Try again in 15 minutes.'),
+});

@@ -37,7 +37,7 @@ export type StoredMedia = {
 };
 
 // "images/2026/09/<uuid>.webp" — random names, grouped by month so no folder gets huge.
-function newKey(folder: 'images' | 'voice' | 'covers', ext: string): string {
+function newKey(folder: 'images' | 'voice' | 'covers' | 'avatars', ext: string): string {
   const now = new Date();
   const month = String(now.getUTCMonth() + 1).padStart(2, '0');
   return `${folder}/${now.getUTCFullYear()}/${month}/${crypto.randomUUID()}.${ext}`;
@@ -118,6 +118,25 @@ export async function storeCover(buffer: Buffer, size = { width: 1200, height: 4
     throw new AppError(422, "That image couldn't be processed. Try a different photo.");
   }
   const key = newKey('covers', 'webp');
+  await writeMedia(key, data);
+  return key;
+}
+
+// Profile photos: the client sends its circular crop; we square it to 512×512 WebP (metadata stripped).
+export async function storeAvatar(buffer: Buffer): Promise<string> {
+  const type = await fileTypeFromBuffer(buffer);
+  if (!type || !IMAGE_INPUTS.has(type.mime)) throw new AppError(415, 'Unsupported image. Use a JPG, PNG, WebP or AVIF photo.');
+  let data: Buffer;
+  try {
+    data = await sharp(buffer, { limitInputPixels: 50_000_000 })
+      .rotate()
+      .resize({ width: 512, height: 512, fit: 'cover', position: 'attention' })
+      .webp({ quality: 85 })
+      .toBuffer();
+  } catch {
+    throw new AppError(422, "That image couldn't be processed. Try a different photo.");
+  }
+  const key = newKey('avatars', 'webp');
   await writeMedia(key, data);
   return key;
 }

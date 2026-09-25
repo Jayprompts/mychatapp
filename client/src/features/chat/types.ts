@@ -28,6 +28,7 @@ export type Conversation = {
   id: string;
   type: 'direct' | 'group' | 'community';
   community: ConversationCommunity | null; // community chats only
+  blocked: 'byMe' | 'byThem' | null; // 1-on-1 chats: who blocked whom
   name: string;
   avatarUrl: string | null;
   description: string; // groups only

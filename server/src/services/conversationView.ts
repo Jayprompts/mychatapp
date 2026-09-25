@@ -1,6 +1,7 @@
 import { Community, type CommunityDoc } from '../models/Community.js';
 import type { ConversationDoc } from '../models/Conversation.js';
 import { USER_SUMMARY_FIELDS, User, toUserSummary, type UserDoc, type UserSummary } from '../models/User.js';
+import { blocksInvolving } from './blocks.js';
 import { isOnline } from './presence.js';
 
 // Shapes conversations for one viewer: names the direct chat after the other person,
@@ -15,11 +16,14 @@ const deletedUser = (id: string): UserSummary => ({
   online: false,
 });
 
+type Blocks = Awaited<ReturnType<typeof blocksInvolving>>;
+
 function toConversationView(
   c: ConversationDoc,
   viewerId: string,
   users: Map<string, UserDoc>,
   communities: Map<string, CommunityDoc>,
+  blocks: Blocks,
 ) {
   const members = c.members.map((m) => {
     const id = m.user.toString();
@@ -41,6 +45,8 @@ function toConversationView(
     avatarUrl: c.type === 'direct' ? (other?.user.avatarUrl ?? null) : (c.avatarUrl ?? null),
     description: c.type === 'group' ? (c.description ?? '') : '',
     myRole: me?.role ?? 'member',
+    // 1-on-1 only: 'byMe' (I blocked them) · 'byThem' (they blocked me) · null
+    blocked: other ? (blocks.byMe.has(other.user.id) ? 'byMe' : blocks.byThem.has(other.user.id) ? 'byThem' : null) : null,
     community: communityInfo(communities.get(c._id.toString())),
     members,
     lastMessage: c.lastMessage
@@ -81,7 +87,8 @@ export async function buildConversationViews(conversations: ConversationDoc[], v
   const communityConvs = conversations.filter((c) => c.type === 'community').map((c) => c._id);
   const communities = communityConvs.length ? await Community.find({ conversation: { $in: communityConvs } }) : [];
   const communityByConv = new Map(communities.map((cm) => [cm.conversation.toString(), cm]));
-  return conversations.map((c) => toConversationView(c, viewerId, byId, communityByConv));
+  const blocks = await blocksInvolving(viewerId);
+  return conversations.map((c) => toConversationView(c, viewerId, byId, communityByConv, blocks));
 }
 
 export async function buildConversationView(conversation: ConversationDoc, viewerId: string) {

@@ -1,3 +1,4 @@
+import { assertCanMessage } from '../services/blocks.js';
 import type { RequestHandler } from 'express';
 import { z } from 'zod';
 import { Conversation, directKeyFor } from '../models/Conversation.js';
@@ -95,6 +96,7 @@ async function findRetry(senderId: string, clientId: string | undefined) {
 export const sendMessage: RequestHandler = async (req, res) => {
   const me = authUser(req)._id.toString();
   const conversation = await findMemberConversation(req.params.id, me);
+  await assertCanMessage(conversation, me);
   const { text, clientId, replyTo } = req.body as SendMessageInput;
 
   const existing = await findRetry(me, clientId);
@@ -120,6 +122,7 @@ export const sendMessage: RequestHandler = async (req, res) => {
 export const sendMediaMessage: RequestHandler = async (req, res) => {
   const me = authUser(req)._id.toString();
   const conversation = await findMemberConversation(req.params.id, me);
+  await assertCanMessage(conversation, me);
 
   const parsed = mediaMessageSchema.safeParse(req.body ?? {});
   if (!parsed.success) throw new AppError(400, 'Validation failed', z.flattenError(parsed.error).fieldErrors);

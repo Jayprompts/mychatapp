@@ -4,7 +4,7 @@ import { Schema, model, type HydratedDocument, type InferSchemaType } from 'mong
 export const ROLES = ['super_admin', 'content_mod', 'community_mgr', 'user'] as const;
 export type Role = (typeof ROLES)[number];
 
-export const USER_STATUSES = ['active', 'suspended', 'banned'] as const;
+export const USER_STATUSES = ['active', 'suspended', 'banned', 'deleted'] as const;
 export const AUTH_PROVIDERS = ['local', 'google', 'github'] as const;
 
 const userSchema = new Schema(
@@ -27,7 +27,12 @@ const userSchema = new Schema(
     status: { type: String, enum: USER_STATUSES, default: 'active' },
     emailVerified: { type: Boolean, default: false },
     avatarUrl: { type: String, default: null },
+    avatarKey: { type: String, default: null }, // uploaded photo (uploads/avatars/…); OAuth pictures have none
     bio: { type: String, maxlength: 160, default: '' },
+    website: { type: String, trim: true, maxlength: 100, default: '' },
+    location: { type: String, trim: true, maxlength: 60, default: '' },
+    showOnlineStatus: { type: Boolean, default: true }, // privacy: hide "Active now" / last seen from others
+    passwordChangedAt: { type: Date, default: null },
     lastSeenAt: { type: Date, default: null },
     // Bumping this invalidates every token issued before (logout-all, ban, role change)
     tokenVersion: { type: Number, default: 0, select: false },
@@ -52,6 +57,10 @@ export function toPublicUser(user: UserDoc) {
     emailVerified: user.emailVerified,
     avatarUrl: user.avatarUrl ?? null,
     bio: user.bio ?? '',
+    website: user.website ?? '',
+    location: user.location ?? '',
+    showOnlineStatus: user.showOnlineStatus !== false,
+    passwordChangedAt: user.passwordChangedAt ?? null,
     authProvider: user.authProvider,
     lastSeenAt: user.lastSeenAt ?? null,
     createdAt: user.createdAt,
@@ -61,16 +70,18 @@ export function toPublicUser(user: UserDoc) {
 export type PublicUser = ReturnType<typeof toPublicUser>;
 
 // Public card for OTHER users (chat lists, search, members) — no email, no account details.
-export const USER_SUMMARY_FIELDS = 'username displayName avatarUrl lastSeenAt';
+export const USER_SUMMARY_FIELDS = 'username displayName avatarUrl lastSeenAt showOnlineStatus';
 
+// Respects the person's privacy choice: if they hide their status, nobody sees "online" or "last seen".
 export function toUserSummary(user: UserDoc, online: boolean) {
+  const visible = user.showOnlineStatus !== false;
   return {
     id: user._id.toString(),
     username: user.username,
     displayName: user.displayName,
     avatarUrl: user.avatarUrl ?? null,
-    lastSeenAt: user.lastSeenAt ?? null,
-    online,
+    lastSeenAt: visible ? (user.lastSeenAt ?? null) : null,
+    online: visible && online,
   };
 }
 

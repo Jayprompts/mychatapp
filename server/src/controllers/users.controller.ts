@@ -2,6 +2,7 @@ import type { RequestHandler } from 'express';
 import { z } from 'zod';
 import { USER_SUMMARY_FIELDS, User, toUserSummary } from '../models/User.js';
 import { authUser } from '../middleware/auth.js';
+import { blocksInvolving } from '../services/blocks.js';
 import { isOnline } from '../services/presence.js';
 import { AppError } from '../utils/AppError.js';
 import { userSearchQuerySchema } from '../validators/chat.schemas.js';
@@ -16,8 +17,9 @@ export const searchUsers: RequestHandler = async (req, res) => {
   const me = authUser(req);
   const pattern = escapeRegex(parsed.data.q.replace(/^@/, ''));
 
+  const blocks = await blocksInvolving(me._id.toString());
   const users = await User.find({
-    _id: { $ne: me._id },
+    _id: { $ne: me._id, $nin: [...blocks.byMe, ...blocks.byThem] },
     status: 'active',
     $or: [{ username: { $regex: `^${pattern}`, $options: 'i' } }, { displayName: { $regex: pattern, $options: 'i' } }],
   })

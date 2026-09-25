@@ -10,7 +10,7 @@ import type { LoginInput, RegisterInput } from '../validators/auth.schemas.js';
 // Sets the auth cookie. The raw token is only returned in the body when the client
 // explicitly asks for it (mobile app / Postman Bearer testing) via "X-Auth-Mode: bearer" —
 // browsers never see it, so the httpOnly protection isn't undermined.
-function sendAuth(req: Request, res: Response, user: UserDoc, status: number) {
+export function sendAuth(req: Request, res: Response, user: UserDoc, status: number) {
   const token = signToken(user._id.toString(), user.tokenVersion ?? 0);
   res.cookie(AUTH_COOKIE, token, authCookieOptions);
 

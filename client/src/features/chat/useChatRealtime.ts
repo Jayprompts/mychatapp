@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { getSocket } from '@/lib/socket';
 import { meQueryKey } from '@/features/auth/api';
 import { api } from '@/lib/api';
@@ -17,6 +17,12 @@ import { presenceStore, resetLiveState, setTyping } from './liveState';
 
 // Connects the socket while logged in and turns server events into cache/store updates.
 // Mounted once, in the AppShell.
+// Refetch the chat list, even if a load is already in flight: TanStack reuses an in-flight *first*
+// load instead of restarting it, and that load may have read the database before this event.
+function refreshChatList(qc: QueryClient) {
+  void qc.cancelQueries({ queryKey: chatKeys.conversations }).then(() => qc.invalidateQueries({ queryKey: chatKeys.conversations }));
+}
+
 export function useChatRealtime(myId: string | undefined) {
   const qc = useQueryClient();
 
@@ -26,14 +32,10 @@ export function useChatRealtime(myId: string | undefined) {
     let connectedBefore = false;
 
     socket.on('connect', () => {
-      // After a reconnect we may have missed events — refetch chat data once.
-      if (connectedBefore) {
-        void qc.invalidateQueries({ queryKey: chatKeys.conversations });
-        void qc.invalidateQueries({ queryKey: ['messages'] });
-      } else if (qc.getQueryState(chatKeys.conversations)?.status === 'success') {
-        // First connection, but the list loaded before it: catch anything sent in between.
-        void qc.invalidateQueries({ queryKey: chatKeys.conversations });
-      }
+      // The chat list may have been read before we joined our live room (even if that read is still
+      // in flight) — refetch once now; from here on, new messages arrive live.
+      refreshChatList(qc);
+      if (connectedBefore) void qc.invalidateQueries({ queryKey: ['messages'] }); // reconnect: open chats may have missed some
       connectedBefore = true;
     });
 
@@ -47,7 +49,7 @@ export function useChatRealtime(myId: string | undefined) {
       upsertMessage(qc, message);
       if (message.type === 'image') void qc.invalidateQueries({ queryKey: ['sharedMedia', message.conversationId] });
       const known = applyMessageToList(qc, message, myId);
-      if (!known) void qc.invalidateQueries({ queryKey: chatKeys.conversations }); // someone started a new chat
+      if (!known) refreshChatList(qc); // someone started a new chat (or the list is still loading)
     });
 
     // Reactions, edits and unsends.

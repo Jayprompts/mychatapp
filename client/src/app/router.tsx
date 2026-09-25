@@ -12,7 +12,10 @@ import { ChatsPage } from '@/pages/ChatsPage';
 import { CommunitiesPage } from '@/pages/CommunitiesPage';
 import { InvitePage } from '@/pages/InvitePage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { EditProfilePage } from '@/pages/EditProfilePage';
 import { ProfilePage } from '@/pages/ProfilePage';
+import { SettingsPage } from '@/pages/SettingsPage';
+import { UserProfilePage } from '@/pages/UserProfilePage';
 import { RouteErrorPage } from '@/pages/RouteErrorPage';
 
 export const router = createBrowserRouter([
@@ -52,6 +55,9 @@ export const router = createBrowserRouter([
               { path: '/blog/write/:postId?', element: <PostEditorPage /> },
               { path: '/blog/:postId', element: <PostPage /> },
               { path: '/profile', element: <ProfilePage /> },
+              { path: '/profile/edit', element: <EditProfilePage /> },
+              { path: '/settings', element: <SettingsPage /> },
+              { path: '/u/:username', element: <UserProfilePage /> },
             ],
           },
         ],

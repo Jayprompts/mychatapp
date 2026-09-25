@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { Flag, Heart, MessageCircle, Pencil, Trash2 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -198,7 +199,13 @@ function CommentItem({
         <div className={cn('rounded-2xl border px-3.5 py-2.5', mine ? 'border-primary/15 bg-primary/4' : 'border-border bg-card')}>
           <div className="flex items-start justify-between gap-2">
             <p className="flex min-w-0 flex-wrap items-baseline gap-x-1.5 text-[13px]">
-              <span className="font-bold text-text-primary">{name}</span>
+              {c.author ? (
+                <Link to={`/u/${c.author.username}`} className="font-bold text-text-primary hover:underline">
+                  {name}
+                </Link>
+              ) : (
+                <span className="font-bold text-text-primary">{name}</span>
+              )}
               {mine && <span className="rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary">You</span>}
               <span className="text-[11px] text-text-secondary">
                 {formatAgo(c.createdAt)}

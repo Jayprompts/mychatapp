@@ -1,6 +1,6 @@
 import { Comment, type CommentDoc } from '../models/Comment.js';
 import { CommentLike } from '../models/CommentLike.js';
-import type { PostDoc } from '../models/Post.js';
+import { Post, type PostDoc } from '../models/Post.js';
 import { USER_SUMMARY_FIELDS, User, toUserSummary, type UserDoc } from '../models/User.js';
 import { emitToPost } from '../sockets/index.js';
 import { isOnline } from './presence.js';
@@ -70,3 +70,22 @@ export async function buildComment(c: CommentDoc, post: PostDoc, viewer: UserDoc
 
 // Everyone looking at the post refetches its comments (and counts).
 export const announceComments = (post: PostDoc) => emitToPost(post._id.toString(), 'post:comments', { postId: post._id.toString() });
+
+// Removes a comment (no permission checks — callers decide who may). A comment with replies
+// becomes "Comment deleted" so the thread still reads; the last reply under one takes it with it.
+export async function removeComment(comment: CommentDoc, post: PostDoc) {
+  const hasReplies = !comment.parent && (await Comment.exists({ parent: comment._id }));
+  if (hasReplies) {
+    await Comment.updateOne({ _id: comment._id }, { $set: { deletedAt: new Date(), body: '' } });
+  } else {
+    await Promise.all([Comment.deleteOne({ _id: comment._id }), CommentLike.deleteMany({ comment: comment._id })]);
+    if (comment.parent) {
+      const root = await Comment.findById(comment.parent);
+      if (root?.deletedAt && !(await Comment.exists({ parent: root._id }))) {
+        await Promise.all([Comment.deleteOne({ _id: root._id }), CommentLike.deleteMany({ comment: root._id })]);
+      }
+    }
+  }
+  await Post.updateOne({ _id: post._id }, { $inc: { commentCount: -1, engagement: -2 } });
+  announceComments(post);
+}

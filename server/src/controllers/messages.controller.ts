@@ -2,6 +2,7 @@ import type { RequestHandler } from 'express';
 import { Conversation } from '../models/Conversation.js';
 import { DELETED_PREVIEW, EDIT_WINDOW_MS, Message, previewFor, toPublicMessage } from '../models/Message.js';
 import { authUser } from '../middleware/auth.js';
+import { assertCanMessage } from '../services/blocks.js';
 import { emitMessageUpdated, findMemberMessage } from '../services/conversations.js';
 import { deleteMedia } from '../services/media.js';
 import { AppError } from '../utils/AppError.js';
@@ -15,6 +16,7 @@ export const react: RequestHandler = async (req, res) => {
   const me = authUser(req)._id;
   const { conversation, message } = await findMemberMessage(req.params.id, req.params.messageId, me.toString());
   if (message.deletedAt || message.type === 'system') throw new AppError(400, "You can't react to that message");
+  await assertCanMessage(conversation, me.toString());
   const { emoji } = req.body as ReactionInput;
 
   await Message.updateOne({ _id: message._id }, { $pull: { reactions: { user: me } } });

@@ -11,7 +11,7 @@ import { REPORT_REASONS, type ReportReason, type ReportTarget } from '../types';
 // Report a post or comment (per the design): pick a reason, optional details, done.
 export function ReportDialog({ target, onClose }: { target: ReportTarget | null; onClose: () => void }) {
   return (
-    <Modal open={!!target} onClose={onClose} title={target?.type === 'comment' ? 'Report comment' : 'Report post'}>
+    <Modal open={!!target} onClose={onClose} title={target?.type === 'comment' ? 'Report comment' : target?.type === 'user' ? 'Report user' : 'Report post'}>
       {target && <ReportForm key={target.id} target={target} onClose={onClose} />}
     </Modal>
   );
@@ -43,7 +43,7 @@ function ReportForm({ target, onClose }: { target: ReportTarget; onClose: () => 
   return (
     <div className="flex flex-col gap-3 p-5">
       <p className="text-[13px] leading-relaxed text-text-secondary">
-        What's wrong with this {target.type}? Your report is anonymous — the author isn't told who sent it.
+        What's wrong with this {target.type}? Your report is anonymous — {target.type === 'user' ? 'they' : 'the author'} won't be told who sent it.
       </p>
       <div role="radiogroup" aria-label="Reason" className="flex flex-col gap-2">
         {REPORT_REASONS.map((r) => (

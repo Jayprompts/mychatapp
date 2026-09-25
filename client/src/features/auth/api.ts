@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { api, ApiError } from '@/lib/api';
 import type { User } from './types';
 import type { LoginValues } from './schemas';
@@ -43,14 +43,18 @@ export function useRegister() {
   });
 }
 
+// Signed out (logout, deleted account…): tell every guard first, then forget the old session's data.
+// (Clearing the cache first would leave mounted guards watching a removed query — no redirect.)
+export function endSession(qc: QueryClient) {
+  qc.setQueryData(meQueryKey, null);
+  qc.removeQueries({ predicate: (q) => q.queryKey[0] !== meQueryKey[0] });
+}
+
 function useSignOut(path: '/auth/logout' | '/auth/logout-all') {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => api<{ message: string }>(path, { method: 'POST' }),
-    onSuccess: () => {
-      qc.clear(); // drop every cached query from the previous session
-      qc.setQueryData(meQueryKey, null); // guards redirect to /welcome
-    },
+    onSuccess: () => endSession(qc), // guards redirect to /welcome
   });
 }
 

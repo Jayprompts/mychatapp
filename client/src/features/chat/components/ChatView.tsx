@@ -7,6 +7,9 @@ import { buttonClasses } from '@/components/ui/buttonClasses';
 import { useMe } from '@/features/auth/api';
 import { cn } from '@/lib/cn';
 import { formatLastSeen } from '@/lib/time';
+import { useSetBlocked } from '@/features/profile/api';
+import { errorMessage } from '@/lib/api';
+import { toast } from '@/lib/toast';
 import { useConversation, useMarkRead } from '../api';
 import { usePresence, useTypingUserIds } from '../liveState';
 import type { Conversation, Message } from '../types';
@@ -84,14 +87,18 @@ function ChatViewLoaded({ conversation, myId }: { conversation: Conversation; my
             setEditing(m);
           }}
         />
-        <Composer
-          conversationId={conversation.id}
-          replyTo={replyTo}
-          replyToName={replyTo ? nameOf(replyTo.senderId) : undefined}
-          onCancelReply={() => setReplyTo(null)}
-          editing={editing}
-          onDoneEditing={() => setEditing(null)}
-        />
+        {conversation.blocked ? (
+          <BlockedBanner conversation={conversation} myId={myId} />
+        ) : (
+          <Composer
+            conversationId={conversation.id}
+            replyTo={replyTo}
+            replyToName={replyTo ? nameOf(replyTo.senderId) : undefined}
+            onCancelReply={() => setReplyTo(null)}
+            editing={editing}
+            onDoneEditing={() => setEditing(null)}
+          />
+        )}
       </div>
 
       {/* Chat info: side column on large screens, full-screen sheet below that */}
@@ -184,6 +191,31 @@ function ChatSkeleton() {
         </div>
       </div>
       <div className="flex-1" />
+    </div>
+  );
+}
+
+// A blocked 1-on-1 chat keeps its history but can't take new messages.
+function BlockedBanner({ conversation, myId }: { conversation: Conversation; myId: string }) {
+  const unblock = useSetBlocked();
+  const other = conversation.members.find((m) => m.user.id !== myId)?.user;
+  return (
+    <div className="flex shrink-0 flex-wrap items-center justify-center gap-x-3 gap-y-2 border-t border-border bg-card px-4 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-center text-sm text-text-secondary">
+      {conversation.blocked === 'byMe' ? (
+        <>
+          <span>You blocked {other?.displayName ?? 'this person'}.</span>
+          <button
+            type="button"
+            disabled={unblock.isPending}
+            onClick={() => other && unblock.mutate({ userId: other.id, blocked: false }, { onError: (e) => toast(errorMessage(e), 'error') })}
+            className="font-semibold text-primary hover:underline"
+          >
+            Unblock
+          </button>
+        </>
+      ) : (
+        <span>You can't reply to this conversation.</span>
+      )}
     </div>
   );
 }

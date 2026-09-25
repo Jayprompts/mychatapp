@@ -1,6 +1,6 @@
 // Mirrors the server's toPublicUser() shape.
 export type Role = 'super_admin' | 'content_mod' | 'community_mgr' | 'user';
-export type UserStatus = 'active' | 'suspended' | 'banned';
+export type UserStatus = 'active' | 'suspended' | 'banned' | 'deleted';
 
 export type User = {
   id: string;
@@ -12,6 +12,10 @@ export type User = {
   emailVerified: boolean;
   avatarUrl: string | null;
   bio: string;
+  website: string;
+  location: string;
+  showOnlineStatus: boolean;
+  passwordChangedAt: string | null;
   authProvider: 'local' | 'google' | 'github';
   lastSeenAt: string | null;
   createdAt: string;

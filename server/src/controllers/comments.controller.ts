@@ -5,7 +5,7 @@ import { CommentLike } from '../models/CommentLike.js';
 import { Post, type PostDoc } from '../models/Post.js';
 import type { UserDoc } from '../models/User.js';
 import { authUser } from '../middleware/auth.js';
-import { announceComments, buildComment, buildThreads, canDeleteComment } from '../services/comments.js';
+import { announceComments, buildComment, buildThreads, canDeleteComment, removeComment } from '../services/comments.js';
 import { findPost } from '../services/posts.js';
 import { AppError } from '../utils/AppError.js';
 import { parseObjectId } from '../utils/objectId.js';
@@ -88,22 +88,7 @@ export const remove: RequestHandler = async (req, res) => {
   if (comment.deletedAt) throw new AppError(404, 'Comment not found');
   if (!canDeleteComment(comment, post, me)) throw new AppError(403, "You can't delete this comment");
 
-  const hasReplies = !comment.parent && (await Comment.exists({ parent: comment._id }));
-  if (hasReplies) {
-    // Keep the thread readable: the text goes, the replies stay.
-    await Comment.updateOne({ _id: comment._id }, { $set: { deletedAt: new Date(), body: '' } });
-  } else {
-    await Promise.all([Comment.deleteOne({ _id: comment._id }), CommentLike.deleteMany({ comment: comment._id })]);
-    // Last reply under an already-deleted comment: remove that placeholder too.
-    if (comment.parent) {
-      const root = await Comment.findById(comment.parent);
-      if (root?.deletedAt && !(await Comment.exists({ parent: root._id }))) {
-        await Promise.all([Comment.deleteOne({ _id: root._id }), CommentLike.deleteMany({ comment: root._id })]);
-      }
-    }
-  }
-  await bumpCount(post, -1);
-  announceComments(post);
+  await removeComment(comment, post);
   res.json({ success: true, data: { deleted: true } });
 };
 

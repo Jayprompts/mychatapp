@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Link } from 'react-router';
 import { ArrowLeft, LogOut, MoreVertical, Pencil, ShieldCheck, ShieldMinus, UserMinus, UserPlus, X } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -66,6 +67,14 @@ function GroupOrDirectInfoPanel({ conversation: c, myId, onClose }: Props) {
             {isGroup ? `Group · ${c.members.length} members` : `@${other?.username} · ${formatLastSeen(presence.online, presence.lastSeenAt)}`}
           </p>
         </div>
+        {!isGroup && other && other.username !== 'deleted' && (
+          <Link
+            to={`/u/${other.username}`}
+            className="flex items-center gap-1.5 rounded-full border-[1.5px] border-white/35 bg-white/20 px-4 py-1.5 text-[13px] font-semibold transition-colors hover:bg-white/30"
+          >
+            View profile
+          </Link>
+        )}
         {isGroup && (
           <div className="flex gap-2">
             <button
@@ -167,7 +176,13 @@ export function MemberRow({ member: m, conversation: c, myId }: { member: Conver
       <Avatar name={m.user.displayName} src={m.user.avatarUrl} size={36} status={presence.online ? 'online' : undefined} />
       <div className="min-w-0 flex-1">
         <p className="truncate text-[13px] font-semibold text-text-primary">
-          {m.user.displayName}
+          {m.user.username === 'deleted' ? (
+            m.user.displayName
+          ) : (
+            <Link to={isMe ? '/profile' : `/u/${m.user.username}`} className="hover:underline">
+              {m.user.displayName}
+            </Link>
+          )}
           {isMe && <span className="font-normal text-text-secondary"> (You)</span>}
         </p>
         <p className="truncate text-[11px] text-text-secondary">

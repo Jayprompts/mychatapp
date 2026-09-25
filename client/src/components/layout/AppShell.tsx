@@ -2,7 +2,6 @@ import { Link, NavLink, Outlet, useMatch } from 'react-router';
 import { MessageCircle, Newspaper, User, Users, type LucideIcon } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { LogoMark } from '@/components/ui/Logo';
-import { Toaster } from '@/components/ui/Toaster';
 import { useMe } from '@/features/auth/api';
 import { useConversations } from '@/features/chat/api';
 import { useChatRealtime } from '@/features/chat/useChatRealtime';
@@ -24,7 +23,8 @@ export function AppShell() {
   const inCommunity = useMatch('/communities/:communityId') !== null;
   const inPost = useMatch('/blog/:postId') !== null; // reading and writing are full-screen
   const inEditor = useMatch('/blog/write/:postId?') !== null;
-  const inConversation = inChat || inCommunity || inPost || inEditor;
+  const inStackedPage = [useMatch('/profile/edit'), useMatch('/settings'), useMatch('/u/:username')].some(Boolean); // own back button
+  const inConversation = inChat || inCommunity || inPost || inEditor || inStackedPage;
 
   const nav: NavItem[] = [
     { to: '/chats', label: 'Chats', icon: MessageCircle, badge: unreadOf(false) },
@@ -79,7 +79,6 @@ export function AppShell() {
         <Outlet />
       </main>
 
-      <Toaster />
 
       {/* Bottom tab bar — mobile */}
       {!inConversation && (

@@ -57,7 +57,12 @@ function tokenFromHandshake(socket: GroveSocket): string | null {
 }
 
 // Tell everyone who shares a conversation with this user that they came online / went offline.
-async function broadcastPresence(userId: string, online: boolean, lastSeenAt: Date | null) {
+// `force` is for the moment someone hides their status: one last "offline" (no last-seen), then silence.
+export async function broadcastPresence(userId: string, online: boolean, lastSeenAt: Date | null, { force = false } = {}) {
+  if (!force) {
+    const user = await User.findById(userId).select('showOnlineStatus');
+    if (user?.showOnlineStatus === false) return; // hidden: contacts never hear about it
+  }
   const contacts = await Conversation.distinct('members.user', { 'members.user': userId });
   const others = contacts.map(String).filter((id) => id !== userId);
   emitToUsers(others, 'presence:update', { userId, online, lastSeenAt: lastSeenAt?.toISOString() ?? null });

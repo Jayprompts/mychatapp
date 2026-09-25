@@ -68,4 +68,4 @@ export type CommentThread = CommentView & { replies: CommentView[] };
 
 export const REPORT_REASONS = ['Spam', 'Harassment', 'Misinformation', 'Hate speech', 'Violence', 'Other'] as const;
 export type ReportReason = (typeof REPORT_REASONS)[number];
-export type ReportTarget = { type: 'post' | 'comment'; id: string };
+export type ReportTarget = { type: 'post' | 'comment' | 'user'; id: string };

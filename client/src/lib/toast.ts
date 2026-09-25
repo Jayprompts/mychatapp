@@ -1,6 +1,6 @@
 import { createStore } from './store';
 
-// Tiny app-wide toasts: toast('Copied'). Rendered by <Toaster /> in the AppShell.
+// Tiny app-wide toasts: toast('Copied'). Rendered by <Toaster /> at the app root (main.tsx).
 export type Toast = { id: number; message: string; tone: 'default' | 'error' };
 
 export const toastStore = createStore<Toast[]>([]);
