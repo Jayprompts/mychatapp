@@ -32,6 +32,15 @@ function normalize(err: unknown): unknown {
     return new AppError(400, 'Validation failed', details);
   }
 
+  // Standard HTTP errors from Express internals (404 from static files, 413 body too large, …)
+  if (typeof err === 'object' && err !== null && 'status' in err && typeof err.status === 'number') {
+    const status = err.status;
+    if (status >= 400 && status < 500) {
+      const message = 'expose' in err && err.expose && err instanceof Error ? err.message : 'Request failed';
+      return new AppError(status, status === 404 ? 'Not found' : message);
+    }
+  }
+
   return err;
 }
 

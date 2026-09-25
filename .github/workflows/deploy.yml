@@ -1,0 +1,97 @@
+name: Deploy Grove
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: # "Run workflow" button in the Actions tab
+
+# Never run two deploys at the same time; a newer push waits for the current one.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            client/package-lock.json
+            server/package-lock.json
+
+      # If any of these fail, nothing is deployed and the live site keeps running the previous version.
+      - name: Build client (lint + typecheck + bundle)
+        working-directory: client
+        run: |
+          npm ci
+          npm run lint
+          npm run build
+
+      - name: Build server (typecheck + compile)
+        working-directory: server
+        run: |
+          npm ci
+          npm run build
+
+      - name: Assemble release
+        run: |
+          mkdir -p release/server release/client
+          cp -r server/dist server/package.json server/package-lock.json server/ecosystem.config.cjs release/server/
+          cp -r client/dist release/client/
+
+      - name: Set up SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "${{ secrets.DEPLOY_PORT }}" -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      # Upload only built files. Never touches the server's .env, installed packages or user uploads.
+      - name: Upload release
+        run: |
+          rsync -az --delete \
+            --exclude='server/.env' \
+            --exclude='server/node_modules' \
+            --exclude='uploads' \
+            --exclude='.well-known' \
+            -e "ssh -i ~/.ssh/deploy_key -p ${{ secrets.DEPLOY_PORT }}" \
+            release/ "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:${{ secrets.DEPLOY_PATH }}/"
+
+      - name: Install, restart and health-check
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "${{ secrets.DEPLOY_PORT }}" "${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}" \
+            "bash -s -- '${{ secrets.DEPLOY_PATH }}'" <<'REMOTE'
+          set -eo pipefail
+          export NVM_DIR="$HOME/.nvm"
+          . "$NVM_DIR/nvm.sh"
+          cd "$1/server"
+
+          if [ ! -f .env ]; then echo "❌ server/.env is missing on the VPS"; exit 1; fi
+
+          npm ci --omit=dev --no-audit --no-fund
+
+          if pm2 describe grove > /dev/null 2>&1; then
+            pm2 reload ecosystem.config.cjs --update-env
+          else
+            pm2 start ecosystem.config.cjs
+          fi
+          pm2 save
+
+          PORT=$(grep -E '^PORT=' .env | cut -d= -f2)
+          for i in $(seq 1 15); do
+            if curl -fsS "http://127.0.0.1:${PORT}/api/health"; then
+              echo; echo "✅ Grove is live"; exit 0
+            fi
+            sleep 2
+          done
+          echo "❌ Health check failed — recent logs:"
+          pm2 logs grove --lines 40 --nostream
+          exit 1
+          REMOTE

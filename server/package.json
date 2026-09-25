@@ -10,7 +10,9 @@
     "dev": "tsx watch --env-file=.env src/server.ts",
     "build": "tsc",
     "start": "node --env-file=.env dist/server.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "make-admin": "tsx --env-file=.env src/scripts/make-admin.ts",
+    "make-admin:prod": "node --env-file=.env dist/scripts/make-admin.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
