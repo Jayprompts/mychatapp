@@ -7,6 +7,7 @@ import { USER_SUMMARY_FIELDS, User, toUserSummary, type UserDoc } from '../model
 import { AppError } from '../utils/AppError.js';
 import { parseObjectId } from '../utils/objectId.js';
 import { deleteMedia } from './media.js';
+import { removeNotificationsFor } from './notifications.js';
 import { isOnline } from './presence.js';
 
 // Site roles that may edit/remove anyone's post (RBAC, per the plan).
@@ -127,4 +128,5 @@ export async function destroyPost(p: PostDoc) {
     Post.deleteOne({ _id: p._id }),
   ]);
   await Promise.all(keys.map(deleteMedia));
+  await removeNotificationsFor({ post: p._id });
 }

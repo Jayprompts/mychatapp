@@ -28,3 +28,8 @@ export const deleteAccountSchema = z.object({
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+
+export const notificationPrefsSchema = z
+  .object({ messages: z.boolean(), social: z.boolean(), communities: z.boolean() })
+  .partial()
+  .refine((v) => Object.keys(v).length > 0, 'Nothing to update');

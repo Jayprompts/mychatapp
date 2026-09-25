@@ -1,14 +1,16 @@
-import { assertCanMessage } from '../services/blocks.js';
 import type { RequestHandler } from 'express';
 import { z } from 'zod';
-import { Conversation, directKeyFor } from '../models/Conversation.js';
+import { Community } from '../models/Community.js';
+import { Conversation, directKeyFor, type ConversationDoc } from '../models/Conversation.js';
 import { Message, toPublicMessage, type MessageDoc } from '../models/Message.js';
-import { User } from '../models/User.js';
+import { User, type UserDoc } from '../models/User.js';
 import { authUser } from '../middleware/auth.js';
+import { assertCanMessage } from '../services/blocks.js';
 import { buildConversationView, buildConversationViews } from '../services/conversationView.js';
 import { MEDIA_LIMITS, deleteMedia, storeImage, storeVoice, type StoredMedia } from '../services/media.js';
 import { emitToUsers } from '../sockets/index.js';
 import { buildReplySnapshot, findMemberConversation, memberIds, publishNewMessage } from '../services/conversations.js';
+import { mentionedUsers, notify } from '../services/notifications.js';
 import { AppError } from '../utils/AppError.js';
 import {
   mediaMessageSchema,
@@ -113,8 +115,20 @@ export const sendMessage: RequestHandler = async (req, res) => {
     clientId,
     replyTo: await buildReplySnapshot(conversation._id, replyTo),
   });
-  res.status(201).json({ success: true, data: { message: await publishNewMessage(conversation, message) } });
+  const published = await publishNewMessage(conversation, message);
+  void notifyMentions(conversation, authUser(req), text);
+  res.status(201).json({ success: true, data: { message: published } });
 };
+
+// "@ana" in a group or community chat notifies Ana (members only; 1-on-1 chats don't need it).
+async function notifyMentions(conversation: ConversationDoc, me: UserDoc, text: string | undefined) {
+  if (!text || conversation.type === 'direct') return;
+  const members = new Set(conversation.members.map((m) => m.user.toString()));
+  const community = conversation.type === 'community' ? await Community.findOne({ conversation: conversation._id }).select('_id') : null;
+  for (const id of await mentionedUsers(text, members)) {
+    void notify({ recipient: id, type: 'mention', actor: me, conversation: conversation._id, community: community?._id ?? null, title: conversation.name ?? '', preview: text });
+  }
+}
 
 // POST /api/conversations/:id/media  (multipart/form-data)
 //   file: the photo or recording · kind: "image" | "voice" · clientId? · text? (photo caption)
@@ -161,7 +175,9 @@ export const sendMediaMessage: RequestHandler = async (req, res) => {
     throw err;
   }
 
-  res.status(201).json({ success: true, data: { message: await publishNewMessage(conversation, message) } });
+  const published = await publishNewMessage(conversation, message);
+  void notifyMentions(conversation, authUser(req), text); // photo captions can @mention too
+  res.status(201).json({ success: true, data: { message: published } });
 };
 
 // POST /api/conversations/:id/read — I've seen everything up to now (clears my unread badge).

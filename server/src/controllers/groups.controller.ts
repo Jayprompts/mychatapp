@@ -13,6 +13,7 @@ import {
 } from '../services/conversations.js';
 import { syncCommunity } from '../services/communities.js';
 import { removeFromGroup } from '../services/membership.js';
+import { notify } from '../services/notifications.js';
 import { AppError } from '../utils/AppError.js';
 import { parseObjectId } from '../utils/objectId.js';
 import type { AddMembersInput, CreateGroupInput, SetRoleInput, UpdateGroupInput } from '../validators/chat.schemas.js';
@@ -64,6 +65,7 @@ export const createGroup: RequestHandler = async (req, res) => {
     lastMessageAt: new Date(),
   });
   await postSystemEvent(conversation, me, { kind: 'created', name, targets: users.map(person) });
+  for (const u of users) void notify({ recipient: u._id, type: 'group_added', actor: me, conversation: conversation._id, title: name });
 
   res.status(201).json({ success: true, data: { conversation: await buildConversationView(await reload(conversation._id), meId) } });
 };
@@ -122,6 +124,10 @@ export const addMembers: RequestHandler = async (req, res) => {
     await Community.updateOne({ conversation: updated._id }, { $pull: { joinRequests: { user: { $in: newIds } } } });
   }
   await postSystemEvent(updated, me, { kind: 'added', targets: users.map(person) }); // new members see this first
+  const community = updated.type === 'community' ? await Community.findOne({ conversation: updated._id }).select('_id') : null;
+  for (const u of users) {
+    void notify({ recipient: u._id, type: 'group_added', actor: me, conversation: updated._id, community: community?._id ?? null, title: updated.name ?? '' });
+  }
   emitConversationUpdated(updated);
   res.json({ success: true, data: { conversation: await buildConversationView(updated, meId) } });
 };

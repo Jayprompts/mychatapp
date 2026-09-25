@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router';
 import { Flag, Heart, MessageCircle, Pencil, Trash2 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -22,6 +22,19 @@ type Props = { postId: string; total: number; onReport: (target: ReportTarget) =
 export function CommentsSection({ postId, total, onReport }: Props) {
   const comments = useComments(postId);
   const threads = comments.data?.pages.flatMap((p) => p.comments) ?? [];
+  const { hash } = useLocation();
+  const loaded = comments.isSuccess;
+
+  // Opened from a notification (#comment-<id>): bring that comment into view and flash it.
+  useEffect(() => {
+    if (!loaded || !hash.startsWith('#comment-')) return;
+    const el = document.getElementById(hash.slice(1));
+    if (!el) return;
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    el.classList.add('comment-flash');
+    const t = setTimeout(() => el.classList.remove('comment-flash'), 2000);
+    return () => clearTimeout(t);
+  }, [loaded, hash]);
 
   return (
     <section aria-label="Comments" className="mt-10">

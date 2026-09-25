@@ -116,3 +116,21 @@ body {
   border-color: #0866FF;
   box-shadow: 0 0 0 3px rgba(8, 102, 255, 0.15);
 }
+
+/* Live toasts drop in from the top (per the design's springy slide) */
+@keyframes liveToastIn {
+  from { opacity: 0; transform: translateY(-16px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.live-toast-enter {
+  animation: liveToastIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* A comment opened from a notification flashes briefly */
+@keyframes commentFlash {
+  from { box-shadow: 0 0 0 3px rgba(8, 102, 255, 0.35); }
+  to { box-shadow: 0 0 0 3px transparent; }
+}
+.comment-flash > div > div:first-child {
+  animation: commentFlash 2s ease-out;
+}

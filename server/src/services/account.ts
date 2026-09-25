@@ -3,6 +3,7 @@ import { Bookmark } from '../models/Bookmark.js';
 import { Comment } from '../models/Comment.js';
 import { CommentLike } from '../models/CommentLike.js';
 import { Community } from '../models/Community.js';
+import { Notification } from '../models/Notification.js';
 import { Conversation } from '../models/Conversation.js';
 import { Post } from '../models/Post.js';
 import { PostLike } from '../models/PostLike.js';
@@ -47,7 +48,10 @@ export async function deleteAccount(user: UserDoc) {
     CommentLike.deleteMany({ user: id }),
     Bookmark.deleteMany({ user: id }),
     Block.deleteMany({ $or: [{ blocker: id }, { blocked: id }] }),
+    Notification.deleteMany({ recipient: id }),
+    Notification.updateMany({ actors: id }, { $pull: { actors: id } }), // "Ana and 2 others" → "2 others"
   ]);
+  await Notification.deleteMany({ actors: { $size: 0 } });
   if (user.avatarKey) await deleteMedia(user.avatarKey);
 
   await User.updateOne(

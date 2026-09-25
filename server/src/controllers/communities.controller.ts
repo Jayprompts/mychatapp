@@ -18,6 +18,7 @@ import {
 import { emitConversationUpdated, memberIds, postSystemEvent } from '../services/conversations.js';
 import { deleteMedia, mediaPath, storeCover } from '../services/media.js';
 import { emitToUsers } from '../sockets/index.js';
+import { notify, retract } from '../services/notifications.js';
 import { AppError } from '../utils/AppError.js';
 import {
   discoverQuerySchema,
@@ -52,6 +53,10 @@ async function addMember(c: CommunityDoc, user: UserDoc) {
   await syncCommunity(updated);
   await postSystemEvent(updated, user, { kind: 'joined' });
   emitConversationUpdated(updated);
+  for (const admin of await adminIds(updated)) {
+    await retract(admin, `community_request:${c._id.toString()}`, user._id); // their request is answered
+    void notify({ recipient: admin, type: 'community_join', actor: user, community: c._id, title: c.name, groupKey: `community_join:${c._id.toString()}` });
+  }
   return updated;
 }
 
@@ -194,7 +199,11 @@ export const join: RequestHandler = async (req, res) => {
         { _id: community._id, 'joinRequests.user': { $ne: me._id } },
         { $push: { joinRequests: { user: me._id } } },
       );
-      emitCommunityUpdated(community._id.toString(), await adminIds(conversation)); // admins see it right away
+      const admins = await adminIds(conversation);
+      emitCommunityUpdated(community._id.toString(), admins); // admins see it right away
+      for (const admin of admins) {
+        void notify({ recipient: admin, type: 'community_request', actor: me, community: community._id, title: community.name, groupKey: `community_request:${community._id.toString()}` });
+      }
     }
   }
   const fresh = (await Community.findById(community._id))!;
@@ -207,7 +216,9 @@ export const cancelRequest: RequestHandler = async (req, res) => {
   const community = await findCommunity(req.params.id);
   await Community.updateOne({ _id: community._id }, { $pull: { joinRequests: { user: me } } });
   const conversation = await communityConversation(community);
-  emitCommunityUpdated(community._id.toString(), await adminIds(conversation));
+  const admins = await adminIds(conversation);
+  emitCommunityUpdated(community._id.toString(), admins);
+  for (const admin of admins) void retract(admin, `community_request:${community._id.toString()}`, me);
   const fresh = (await Community.findById(community._id))!;
   res.json({ success: true, data: { community: await buildCommunityDetail(fresh, me.toString()) } });
 };
@@ -216,7 +227,8 @@ export const cancelRequest: RequestHandler = async (req, res) => {
 export const answerRequest =
   (approve: boolean): RequestHandler =>
   async (req, res) => {
-    const me = authUser(req)._id.toString();
+    const meUser = authUser(req);
+    const me = meUser._id.toString();
     const community = await findCommunity(req.params.id);
     const { conversation } = await requireAdmin(community, me);
     const request = community.joinRequests.find((r) => r.user.toString() === req.params.userId);
@@ -224,10 +236,13 @@ export const answerRequest =
 
     if (approve) {
       const user = await User.findById(request.user);
-      if (user && user.status === 'active') await addMember(community, user);
-      else await Community.updateOne({ _id: community._id }, { $pull: { joinRequests: { user: request.user } } });
+      if (user && user.status === 'active') {
+        await addMember(community, user);
+        void notify({ recipient: user._id, type: 'request_approved', actor: meUser, community: community._id, title: community.name });
+      } else await Community.updateOne({ _id: community._id }, { $pull: { joinRequests: { user: request.user } } });
     } else {
       await Community.updateOne({ _id: community._id }, { $pull: { joinRequests: { user: request.user } } });
+      for (const admin of await adminIds(conversation)) void retract(admin, `community_request:${community._id.toString()}`, request.user);
     }
 
     emitCommunityUpdated(community._id.toString(), [...(await adminIds(conversation)), request.user.toString()]);

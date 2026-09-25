@@ -12,6 +12,7 @@ import { ChatsPage } from '@/pages/ChatsPage';
 import { CommunitiesPage } from '@/pages/CommunitiesPage';
 import { InvitePage } from '@/pages/InvitePage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
+import { NotificationsPage } from '@/pages/NotificationsPage';
 import { EditProfilePage } from '@/pages/EditProfilePage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { SettingsPage } from '@/pages/SettingsPage';
@@ -57,6 +58,7 @@ export const router = createBrowserRouter([
               { path: '/profile', element: <ProfilePage /> },
               { path: '/profile/edit', element: <EditProfilePage /> },
               { path: '/settings', element: <SettingsPage /> },
+              { path: '/notifications', element: <NotificationsPage /> },
               { path: '/u/:username', element: <UserProfilePage /> },
             ],
           },

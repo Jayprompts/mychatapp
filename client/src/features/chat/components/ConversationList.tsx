@@ -1,3 +1,4 @@
+import { HeaderBell } from '@/features/notifications/components/NotificationBell';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { MessageCircle, Plus, Search } from 'lucide-react';
@@ -39,6 +40,7 @@ export function ConversationList({ activeId }: { activeId?: string }) {
     <div className="relative flex min-h-0 flex-1 flex-col">
       <header className="flex h-16 shrink-0 items-center justify-between px-4">
         <h1 className="text-[22px] font-bold tracking-tight text-text-primary">Chats</h1>
+        <HeaderBell />
       </header>
 
       <div className="px-4 pb-3">

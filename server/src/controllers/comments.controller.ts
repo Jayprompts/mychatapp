@@ -7,6 +7,7 @@ import type { UserDoc } from '../models/User.js';
 import { authUser } from '../middleware/auth.js';
 import { announceComments, buildComment, buildThreads, canDeleteComment, removeComment } from '../services/comments.js';
 import { findPost } from '../services/posts.js';
+import { mentionedUsers, notify, retract } from '../services/notifications.js';
 import { AppError } from '../utils/AppError.js';
 import { parseObjectId } from '../utils/objectId.js';
 import { commentsQuerySchema, type CreateCommentInput } from '../validators/blog.schemas.js';
@@ -27,6 +28,26 @@ async function findComment(id: unknown, viewer: UserDoc): Promise<{ comment: Com
 
 const bumpCount = (post: PostDoc, by: 1 | -1) =>
   Post.updateOne({ _id: post._id }, { $inc: { commentCount: by, engagement: 2 * by } });
+
+// Who hears about a new comment: the person replied to, the post's author, anyone @mentioned —
+// each person once, with the most specific reason.
+async function notifyComment(post: PostDoc, comment: CommentDoc, repliedTo: CommentDoc | null, me: UserDoc) {
+  const told = new Set<string>([me._id.toString()]);
+  const base = { actor: me, post: post._id, comment: comment._id, title: post.title, preview: comment.body };
+  if (repliedTo && !told.has(repliedTo.author.toString())) {
+    told.add(repliedTo.author.toString());
+    await notify({ ...base, recipient: repliedTo.author, type: 'comment_reply' });
+  }
+  if (!told.has(post.author.toString())) {
+    told.add(post.author.toString());
+    await notify({ ...base, recipient: post.author, type: 'post_comment' });
+  }
+  for (const id of await mentionedUsers(comment.body)) {
+    if (told.has(id)) continue;
+    told.add(id);
+    await notify({ ...base, recipient: id, type: 'mention' });
+  }
+}
 
 // GET /api/posts/:id/comments?after=&limit= — threads, oldest first
 export const list: RequestHandler = async (req, res) => {
@@ -54,17 +75,20 @@ export const create: RequestHandler = async (req, res) => {
 
   let parent: CommentDoc | null = null;
   let replyTo = null;
+  let repliedTo: CommentDoc | null = null;
   if (parentId) {
     const target = await Comment.findOne({ _id: parentId, post: post._id });
     if (!target || (target.deletedAt && !target.parent)) throw new AppError(404, "That comment isn't there any more");
     parent = target.parent ? await Comment.findById(target.parent) : target; // replies to replies join the thread
     if (!parent) throw new AppError(404, "That comment isn't there any more");
     if (!target.author.equals(me._id)) replyTo = target.author;
+    repliedTo = target;
   }
 
   const comment = await Comment.create({ post: post._id, author: me._id, parent: parent?._id ?? null, replyTo, body });
   await bumpCount(post, 1);
   announceComments(post);
+  void notifyComment(post, comment, repliedTo, me);
   res.status(201).json({ success: true, data: { comment: await buildComment(comment, post, me) } });
 };
 
@@ -105,6 +129,10 @@ export const like: RequestHandler = async (req, res) => {
     added = false;
   }
   const updated = added ? await Comment.findByIdAndUpdate(comment._id, { $inc: { likeCount: 1 } }, { returnDocument: 'after' }) : comment;
+  if (added) {
+    const { post } = await findComment(req.params.id, me);
+    void notify({ recipient: comment.author, type: 'comment_like', actor: me, post: post._id, comment: comment._id, title: post.title, preview: comment.body, groupKey: `comment_like:${comment._id.toString()}` });
+  }
   res.json({ success: true, data: { liked: true, likeCount: updated?.likeCount ?? comment.likeCount } });
 };
 
@@ -112,6 +140,7 @@ export const unlike: RequestHandler = async (req, res) => {
   const me = authUser(req);
   const { comment } = await findComment(req.params.id, me);
   const { deletedCount } = await CommentLike.deleteOne({ comment: comment._id, user: me._id });
+  if (deletedCount) void retract(comment.author, `comment_like:${comment._id.toString()}`, me._id);
   const updated = deletedCount ? await Comment.findByIdAndUpdate(comment._id, { $inc: { likeCount: -1 } }, { returnDocument: 'after' }) : comment;
   res.json({ success: true, data: { liked: false, likeCount: updated?.likeCount ?? comment.likeCount } });
 };

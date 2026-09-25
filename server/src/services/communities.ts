@@ -6,6 +6,7 @@ import { emitToUsers } from '../sockets/index.js';
 import { AppError } from '../utils/AppError.js';
 import { parseObjectId } from '../utils/objectId.js';
 import { deleteMedia } from './media.js';
+import { removeNotificationsFor } from './notifications.js';
 import { isOnline } from './presence.js';
 
 export type MyStatus = 'member' | 'requested' | 'none';
@@ -113,5 +114,7 @@ export async function destroyCommunityData(conversationId: ConversationDoc['_id'
   ]);
   await Message.deleteMany({ conversation: conversationId });
   await Conversation.deleteOne({ _id: conversationId });
+  await removeNotificationsFor({ conversation: conversationId });
+  if (community) await removeNotificationsFor({ community: community._id });
   if (community) await Community.deleteOne({ _id: community._id });
 }

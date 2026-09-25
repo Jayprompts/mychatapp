@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Switch } from '@/components/ui/Switch';
 import { useLogout, useLogoutAll, useMe } from '@/features/auth/api';
+import { useUpdateNotificationPrefs } from '@/features/notifications/api';
+import { desktopEnabled, desktopPermission, disableDesktop, enableDesktop } from '@/lib/desktopNotify';
 import type { User } from '@/features/auth/types';
 import { useBlockedUsers, useChangeEmail, useChangePassword, useDeleteAccount, useSetBlocked, useUpdatePrivacy } from '@/features/profile/api';
 import { ApiError, errorMessage } from '@/lib/api';
@@ -19,7 +21,7 @@ const fieldError = (err: unknown, f: string) => (err instanceof ApiError ? err.d
 const generalError = (err: unknown) => (err && !(err instanceof ApiError && err.details) ? errorMessage(err) : null);
 
 // /settings — per the design: Account · Privacy · Sessions · Danger zone.
-// (Notification settings arrive with notifications; Appearance with dark mode.)
+// (Appearance arrives with dark mode.)
 export function SettingsPage() {
   const { data: me } = useMe();
   const navigate = useNavigate();
@@ -34,6 +36,9 @@ export function SettingsPage() {
       </header>
       <div className="flex flex-col gap-4 px-4 pt-4 sm:px-0 sm:pt-0">
         <Account me={me} />
+        <Section title="Notifications">
+          <NotificationSettings me={me} />
+        </Section>
         <Section title="Privacy">
           <Privacy me={me} />
         </Section>
@@ -166,6 +171,44 @@ function PasswordDialog({ open, onClose }: { open: boolean; onClose: () => void 
         </Button>
       </form>
     </Modal>
+  );
+}
+
+function NotificationSettings({ me }: { me: User }) {
+  const update = useUpdateNotificationPrefs();
+  const [desktop, setDesktop] = useState(desktopEnabled);
+  const permission = desktopPermission();
+  const set = (key: keyof User['notificationPrefs']) => (value: boolean) =>
+    update.mutate({ [key]: value }, { onError: (e) => toast(errorMessage(e), 'error') });
+  const p = me.notificationPrefs;
+  return (
+    <div className="divide-y divide-border">
+      <Switch checked={p.messages} onChange={set('messages')} disabled={update.isPending} label="Messages & mentions" description="New message alerts, @mentions, and being added to groups" />
+      <Switch checked={p.social} onChange={set('social')} disabled={update.isPending} label="Posts & comments" description="Likes, comments and replies on what you write" />
+      <Switch checked={p.communities} onChange={set('communities')} disabled={update.isPending} label="Communities" description="People joining or asking to join, and your requests being approved" />
+      <Switch
+        checked={desktop}
+        disabled={permission === 'unsupported' || permission === 'denied'}
+        onChange={async (on) => {
+          if (!on) {
+            disableDesktop();
+            setDesktop(false);
+            return;
+          }
+          const granted = await enableDesktop();
+          setDesktop(granted);
+          if (!granted) toast('Your browser blocked notifications — allow them in its site settings', 'error', 4500);
+        }}
+        label="Desktop notifications (this device)"
+        description={
+          permission === 'unsupported'
+            ? "This browser doesn't support desktop notifications."
+            : permission === 'denied'
+              ? 'Blocked in this browser — allow notifications for this site in its settings, then come back.'
+              : 'Alerts when Grove is open in another tab or window.'
+        }
+      />
+    </div>
   );
 }
 

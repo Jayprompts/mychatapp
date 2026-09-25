@@ -32,6 +32,12 @@ const userSchema = new Schema(
     website: { type: String, trim: true, maxlength: 100, default: '' },
     location: { type: String, trim: true, maxlength: 60, default: '' },
     showOnlineStatus: { type: Boolean, default: true }, // privacy: hide "Active now" / last seen from others
+    // Settings ▸ Notifications: which kinds of notification you get (see NOTIFICATION_CATEGORY)
+    notificationPrefs: {
+      messages: { type: Boolean, default: true }, // mentions, being added to groups (+ message toasts in the app)
+      social: { type: Boolean, default: true }, // likes, comments and replies on your posts
+      communities: { type: Boolean, default: true }, // joins, requests and approvals
+    },
     passwordChangedAt: { type: Date, default: null },
     lastSeenAt: { type: Date, default: null },
     // Bumping this invalidates every token issued before (logout-all, ban, role change)
@@ -60,6 +66,11 @@ export function toPublicUser(user: UserDoc) {
     website: user.website ?? '',
     location: user.location ?? '',
     showOnlineStatus: user.showOnlineStatus !== false,
+    notificationPrefs: {
+      messages: user.notificationPrefs?.messages !== false,
+      social: user.notificationPrefs?.social !== false,
+      communities: user.notificationPrefs?.communities !== false,
+    },
     passwordChangedAt: user.passwordChangedAt ?? null,
     authProvider: user.authProvider,
     lastSeenAt: user.lastSeenAt ?? null,

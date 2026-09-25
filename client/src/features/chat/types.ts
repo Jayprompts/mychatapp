@@ -1,3 +1,4 @@
+import type { AppNotification } from '@/features/notifications/types';
 // Mirrors the server's API + socket shapes (server/src/services/conversationView.ts, models/Message.ts, sockets/events.ts).
 
 export type UserSummary = {
@@ -111,6 +112,8 @@ export interface ServerToClientEvents {
   'conversation:removed': (payload: { conversationId: string }) => void;
   'community:updated': (payload: { communityId: string }) => void;
   'post:comments': (payload: { postId: string }) => void; // someone commented on the post I'm reading
+  'notification:new': (payload: { notification: AppNotification; unreadCount: number }) => void;
+  'notifications:changed': (payload: { unreadCount: number }) => void;
 }
 
 export interface ClientToServerEvents {

@@ -18,6 +18,7 @@ import {
   plainText,
   readMinutesFor,
 } from '../services/posts.js';
+import { notify, retract } from '../services/notifications.js';
 import { AppError } from '../utils/AppError.js';
 import {
   feedQuerySchema,
@@ -256,6 +257,9 @@ export const like: RequestHandler = async (req, res) => {
   const updated = added
     ? await Post.findByIdAndUpdate(post._id, { $inc: { likeCount: 1, engagement: 1 } }, { returnDocument: 'after' })
     : post;
+  if (added) {
+    void notify({ recipient: post.author, type: 'post_like', actor: authUser(req), post: post._id, title: post.title, groupKey: `post_like:${post._id.toString()}` });
+  }
   res.json({ success: true, data: { liked: true, likeCount: updated?.likeCount ?? post.likeCount } });
 };
 
@@ -266,6 +270,7 @@ export const unlike: RequestHandler = async (req, res) => {
   const updated = deletedCount
     ? await Post.findByIdAndUpdate(post._id, { $inc: { likeCount: -1, engagement: -1 } }, { returnDocument: 'after' })
     : post;
+  if (deletedCount) void retract(post.author, `post_like:${post._id.toString()}`, me);
   res.json({ success: true, data: { liked: false, likeCount: updated?.likeCount ?? post.likeCount } });
 };
 

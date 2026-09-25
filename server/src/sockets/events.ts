@@ -1,4 +1,5 @@
 import type { PublicMessage } from '../models/Message.js';
+import type { NotificationView } from '../services/notifications.js';
 
 // Every real-time event, typed in one place. The client has a mirror of this file.
 
@@ -17,6 +18,8 @@ export interface ServerToClientEvents {
   'conversation:removed': (payload: { conversationId: string }) => void; // you're no longer a member
   'community:updated': (payload: { communityId: string }) => void; // refetch (requests, approvals, edits)
   'post:comments': (payload: { postId: string }) => void; // to people viewing the post: refetch comments
+  'notification:new': (payload: { notification: NotificationView; unreadCount: number }) => void;
+  'notifications:changed': (payload: { unreadCount: number }) => void; // read elsewhere / taken back
 }
 
 export interface ClientToServerEvents {

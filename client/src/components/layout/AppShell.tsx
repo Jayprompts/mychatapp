@@ -1,10 +1,13 @@
 import { Link, NavLink, Outlet, useMatch } from 'react-router';
 import { MessageCircle, Newspaper, User, Users, type LucideIcon } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
+import { LiveToaster } from '@/components/ui/LiveToaster';
 import { LogoMark } from '@/components/ui/Logo';
 import { useMe } from '@/features/auth/api';
 import { useConversations } from '@/features/chat/api';
 import { useChatRealtime } from '@/features/chat/useChatRealtime';
+import { RailBell } from '@/features/notifications/components/NotificationBell';
+import { useNotificationsRealtime } from '@/features/notifications/useNotificationsRealtime';
 import { cn } from '@/lib/cn';
 
 type NavItem = { to: string; label: string; icon: LucideIcon; badge?: number };
@@ -15,6 +18,7 @@ type NavItem = { to: string; label: string; icon: LucideIcon; badge?: number };
 export function AppShell() {
   const { data: user } = useMe();
   useChatRealtime(user?.id); // live connection for the whole logged-in app
+  useNotificationsRealtime(user); // notifications + "New message from…" toasts
 
   const { data: conversations } = useConversations();
   const unreadOf = (community: boolean) =>
@@ -23,7 +27,7 @@ export function AppShell() {
   const inCommunity = useMatch('/communities/:communityId') !== null;
   const inPost = useMatch('/blog/:postId') !== null; // reading and writing are full-screen
   const inEditor = useMatch('/blog/write/:postId?') !== null;
-  const inStackedPage = [useMatch('/profile/edit'), useMatch('/settings'), useMatch('/u/:username')].some(Boolean); // own back button
+  const inStackedPage = [useMatch('/profile/edit'), useMatch('/settings'), useMatch('/u/:username'), useMatch('/notifications')].some(Boolean); // own back button
   const inConversation = inChat || inCommunity || inPost || inEditor || inStackedPage;
 
   const nav: NavItem[] = [
@@ -52,6 +56,9 @@ export function AppShell() {
               <RailLink key={item.to} item={item} />
             ))}
         </nav>
+        <div className="mt-2">
+          <RailBell />
+        </div>
 
         {user && (
           <NavLink
@@ -79,6 +86,8 @@ export function AppShell() {
         <Outlet />
       </main>
 
+
+      <LiveToaster />
 
       {/* Bottom tab bar — mobile */}
       {!inConversation && (

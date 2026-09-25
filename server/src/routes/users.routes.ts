@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import multer from 'multer';
+import { updatePrefs } from '../controllers/notifications.controller.js';
 import * as profile from '../controllers/profile.controller.js';
 import { searchUsers } from '../controllers/users.controller.js';
 import { requireAuth } from '../middleware/auth.js';
@@ -10,6 +11,7 @@ import {
   changeEmailSchema,
   changePasswordSchema,
   deleteAccountSchema,
+  notificationPrefsSchema,
   privacySchema,
   updateProfileSchema,
 } from '../validators/profile.schemas.js';
@@ -29,6 +31,7 @@ router.patch('/me/email', sensitiveLimiter, validate(changeEmailSchema), profile
 router.patch('/me/password', sensitiveLimiter, validate(changePasswordSchema), profile.changePassword);
 router.patch('/me/privacy', validate(privacySchema), profile.updatePrivacy);
 router.get('/me/blocks', profile.listBlocks);
+router.patch('/me/notifications', validate(notificationPrefsSchema), updatePrefs);
 
 router.get('/:id/avatar', profile.getAvatar);
 router.post('/:id/block', profile.block);

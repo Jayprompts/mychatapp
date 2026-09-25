@@ -6,6 +6,7 @@ import { AppError } from '../utils/AppError.js';
 import { destroyCommunityData, syncCommunity } from './communities.js';
 import { emitConversationUpdated, person, postSystemEvent } from './conversations.js';
 import { deleteMedia } from './media.js';
+import { removeNotificationsFor } from './notifications.js';
 
 async function reload(id: unknown): Promise<ConversationDoc> {
   const conversation = await Conversation.findById(id);
@@ -32,6 +33,7 @@ export async function removeFromGroup(group: ConversationDoc, targetId: string, 
       await Promise.all(withMedia.map((m) => (m.media ? deleteMedia(m.media.key) : null)));
       await Message.deleteMany({ conversation: group._id });
       await Conversation.deleteOne({ _id: group._id });
+      await removeNotificationsFor({ conversation: group._id });
     }
     emitToUsers([targetId], 'conversation:removed', { conversationId: group._id.toString() });
     return { deleted: true };

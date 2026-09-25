@@ -3,6 +3,7 @@ import { CommentLike } from '../models/CommentLike.js';
 import { Post, type PostDoc } from '../models/Post.js';
 import { USER_SUMMARY_FIELDS, User, toUserSummary, type UserDoc } from '../models/User.js';
 import { emitToPost } from '../sockets/index.js';
+import { removeNotificationsFor } from './notifications.js';
 import { isOnline } from './presence.js';
 import { canModerate, isAuthor } from './posts.js';
 
@@ -87,5 +88,6 @@ export async function removeComment(comment: CommentDoc, post: PostDoc) {
     }
   }
   await Post.updateOne({ _id: post._id }, { $inc: { commentCount: -1, engagement: -2 } });
+  await removeNotificationsFor({ comment: comment._id });
   announceComments(post);
 }

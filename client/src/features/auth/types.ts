@@ -15,6 +15,7 @@ export type User = {
   website: string;
   location: string;
   showOnlineStatus: boolean;
+  notificationPrefs: { messages: boolean; social: boolean; communities: boolean };
   passwordChangedAt: string | null;
   authProvider: 'local' | 'google' | 'github';
   lastSeenAt: string | null;
