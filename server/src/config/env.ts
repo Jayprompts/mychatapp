@@ -1,3 +1,4 @@
+import path from 'node:path';
 import { z } from 'zod';
 
 const envSchema = z.object({
@@ -7,6 +8,7 @@ const envSchema = z.object({
   CLIENT_URL: z.url(),
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   JWT_EXPIRES_DAYS: z.coerce.number().int().positive().default(7),
+  UPLOADS_DIR: z.string().optional(), // default: server/uploads
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -18,3 +20,7 @@ if (!parsed.success) {
 
 export const env = parsed.data;
 export const isProd = env.NODE_ENV === 'production';
+
+// Voice notes and photos live here (never in Git, never touched by deploys).
+// From src/config (dev) or dist/config (prod), ../../uploads is server/uploads.
+export const uploadsDir = path.resolve(env.UPLOADS_DIR ?? path.resolve(import.meta.dirname, '../../uploads'));

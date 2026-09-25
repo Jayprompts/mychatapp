@@ -52,3 +52,22 @@ export function errorMessage(err: unknown): string {
   if (err instanceof ApiError) return err.message;
   return 'Something went wrong. Please try again.';
 }
+
+// Multipart upload with progress (fetch can't report upload progress, XMLHttpRequest can).
+export function upload<T>(path: string, form: FormData, onProgress?: (fraction: number) => void): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `/api${path}`);
+    xhr.withCredentials = true;
+    xhr.responseType = 'json';
+    if (onProgress) xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
+    xhr.onerror = () => reject(new ApiError(0, "Can't reach the server. Check your connection and try again."));
+    xhr.onload = () => {
+      const json = xhr.response as Envelope<T> | null;
+      if (!json) return reject(new ApiError(xhr.status, `Unexpected response from server (${xhr.status})`));
+      if (!json.success) return reject(new ApiError(xhr.status, json.error.message, json.error.details));
+      resolve(json.data);
+    };
+    xhr.send(form);
+  });
+}

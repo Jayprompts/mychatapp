@@ -539,6 +539,68 @@
           }
         },
         {
+          "name": "Send photo (pick a file)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "const m = pm.response.json().data.message;",
+                  "pm.test(\"stored as WebP\", () => pm.expect(m.media.mimeType).to.eql(\"image/webp\"));",
+                  "pm.test(\"private media url\", () => pm.expect(m.media.url).to.match(/^\\/api\\/media\\//));",
+                  "pm.collectionVariables.set(\"mediaPath\", m.media.url.replace(/^\\/api/, \"\")); // /media/<id>"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "kind",
+                  "value": "image",
+                  "type": "text"
+                },
+                {
+                  "key": "text",
+                  "value": "Sent from Postman 📷",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": [],
+                  "description": "Click and choose any JPG/PNG on your computer"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/conversations/{{conversationId}}/media"
+          }
+        },
+        {
+          "name": "Get photo (members only)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"is an image\", () => pm.expect(pm.response.headers.get(\"Content-Type\")).to.eql(\"image/webp\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}{{mediaPath}}"
+          }
+        },
+        {
           "name": "List conversations",
           "event": [
             {
@@ -548,7 +610,7 @@
                 "exec": [
                   "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
                   "const list = pm.response.json().data.conversations;",
-                  "pm.test(\"newest chat first, with preview\", () => pm.expect(list[0].lastMessage.preview).to.eql(\"Hello from Postman 👋\"));"
+                  "pm.test(\"newest chat first, with a preview\", () => pm.expect(list[0].lastMessage.preview).to.be.a(\"string\").and.not.empty);"
                 ]
               }
             }
@@ -569,7 +631,7 @@
                 "exec": [
                   "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
                   "const d = pm.response.json().data;",
-                  "pm.test(\"oldest → newest, ends with my message\", () => pm.expect(d.messages.at(-1).text).to.eql(\"Hello from Postman 👋\"));",
+                  "pm.test(\"oldest → newest, includes my text message\", () => pm.expect(d.messages.map((m) => m.text)).to.include(\"Hello from Postman 👋\"));",
                   "pm.test(\"has pagination info\", () => { pm.expect(d).to.have.property(\"hasMore\"); pm.expect(d).to.have.property(\"nextCursor\"); });"
                 ]
               }

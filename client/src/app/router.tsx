@@ -39,13 +39,9 @@ export const router = createBrowserRouter([
             element: <AppShell />,
             children: [
               { path: '/', element: <Navigate to="/chats" replace /> },
-              {
-                // Nested so the chat list stays mounted while switching conversations;
-                // ChatsPage reads :conversationId itself.
-                path: '/chats',
-                element: <ChatsPage />,
-                children: [{ index: true }, { path: ':conversationId' }],
-              },
+              // One route for the list and an open conversation (optional :conversationId), so the
+              // chat list stays mounted while switching conversations.
+              { path: '/chats/:conversationId?', element: <ChatsPage /> },
               { path: '/communities', element: <CommunitiesPage /> },
               { path: '/blog', element: <BlogPage /> },
               { path: '/profile', element: <ProfilePage /> },

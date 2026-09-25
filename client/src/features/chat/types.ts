@@ -27,18 +27,33 @@ export type Conversation = {
   createdAt: string;
 };
 
+export type MessageType = 'text' | 'voice' | 'image';
+
+export type MessageMedia = {
+  url: string; // /api/media/:messageId — only works for conversation members
+  mimeType: string;
+  size: number;
+  durationMs: number | null; // voice
+  waveform: number[] | null; // voice: ~48 bars, 0..1
+  width: number | null; // image
+  height: number | null; // image
+};
+
 export type Message = {
   id: string;
   conversationId: string;
   senderId: string;
-  type: 'text';
-  text: string;
+  type: MessageType;
+  text: string; // message text, or photo caption
+  media: MessageMedia | null;
   clientId: string | null;
   createdAt: string;
   editedAt: string | null;
   deletedAt: string | null;
   /** Client-only: optimistic messages that haven't been confirmed by the server yet. */
   status?: 'sending' | 'failed';
+  /** Client-only: the file on this device (instant preview, upload progress, retry). */
+  local?: { url: string; blob?: Blob; progress?: number };
 };
 
 export type MessagesPage = { messages: Message[]; hasMore: boolean; nextCursor: string | null };

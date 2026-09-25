@@ -1,14 +1,20 @@
 import type { RequestHandler } from 'express';
 import { z } from 'zod';
 import { Conversation, directKeyFor, type ConversationDoc } from '../models/Conversation.js';
-import { Message, toPublicMessage } from '../models/Message.js';
+import { Message, previewFor, toPublicMessage, type MessageDoc } from '../models/Message.js';
 import { User } from '../models/User.js';
 import { authUser } from '../middleware/auth.js';
 import { buildConversationView, buildConversationViews } from '../services/conversationView.js';
+import { MEDIA_LIMITS, deleteMedia, storeImage, storeVoice, type StoredMedia } from '../services/media.js';
 import { emitToUsers } from '../sockets/index.js';
 import { AppError } from '../utils/AppError.js';
 import { parseObjectId } from '../utils/objectId.js';
-import { messagesQuerySchema, type OpenDirectInput, type SendMessageInput } from '../validators/chat.schemas.js';
+import {
+  mediaMessageSchema,
+  messagesQuerySchema,
+  type OpenDirectInput,
+  type SendMessageInput,
+} from '../validators/chat.schemas.js';
 
 const memberIds = (c: ConversationDoc) => c.members.map((m) => m.user.toString());
 
@@ -91,24 +97,9 @@ export const listMessages: RequestHandler = async (req, res) => {
   });
 };
 
-// POST /api/conversations/:id/messages { text, clientId? }
-export const sendMessage: RequestHandler = async (req, res) => {
-  const me = authUser(req)._id.toString();
-  const conversation = await findMemberConversation(req.params.id, me);
-  const { text, clientId } = req.body as SendMessageInput;
-
-  // Safe retries: if this clientId was already saved (e.g. the response was lost), return that message.
-  if (clientId) {
-    const existing = await Message.findOne({ sender: me, clientId });
-    if (existing) {
-      res.json({ success: true, data: { message: toPublicMessage(existing) } });
-      return;
-    }
-  }
-
-  const message = await Message.create({ conversation: conversation._id, sender: me, type: 'text', text, clientId });
-
-  // One atomic update: new preview, sender has read everything, everyone else gets +1 unread.
+// After ANY new message (text, voice, photo): update the chat list preview, unread counts and
+// "sender has read everything" in one atomic write, then push it live to every member.
+async function publishNewMessage(conversation: ConversationDoc, message: MessageDoc) {
   await Conversation.updateOne(
     { _id: conversation._id },
     {
@@ -117,7 +108,7 @@ export const sendMessage: RequestHandler = async (req, res) => {
           messageId: message._id,
           sender: message.sender,
           type: message.type,
-          preview: message.text.slice(0, 120),
+          preview: previewFor(message.type, message.text),
           createdAt: message.createdAt,
         },
         lastMessageAt: message.createdAt,
@@ -134,11 +125,75 @@ export const sendMessage: RequestHandler = async (req, res) => {
   emitToUsers(everyone, 'message:new', { message: payload }); // includes my other tabs/devices
   emitToUsers(everyone, 'conversation:read', {
     conversationId: payload.conversationId,
-    userId: me,
+    userId: message.sender.toString(),
     lastReadAt: message.createdAt.toISOString(),
   });
+  return payload;
+}
 
-  res.status(201).json({ success: true, data: { message: payload } });
+// Safe retries: if this clientId was already saved (e.g. the response was lost), return that message.
+async function findRetry(senderId: string, clientId: string | undefined) {
+  return clientId ? Message.findOne({ sender: senderId, clientId }) : null;
+}
+
+// POST /api/conversations/:id/messages { text, clientId? }
+export const sendMessage: RequestHandler = async (req, res) => {
+  const me = authUser(req)._id.toString();
+  const conversation = await findMemberConversation(req.params.id, me);
+  const { text, clientId } = req.body as SendMessageInput;
+
+  const existing = await findRetry(me, clientId);
+  if (existing) {
+    res.json({ success: true, data: { message: toPublicMessage(existing) } });
+    return;
+  }
+
+  const message = await Message.create({ conversation: conversation._id, sender: me, type: 'text', text, clientId });
+  res.status(201).json({ success: true, data: { message: await publishNewMessage(conversation, message) } });
+};
+
+// POST /api/conversations/:id/media  (multipart/form-data)
+//   file: the photo or recording · kind: "image" | "voice" · clientId? · text? (photo caption)
+//   durationMs + waveform (JSON array) for voice notes
+export const sendMediaMessage: RequestHandler = async (req, res) => {
+  const me = authUser(req)._id.toString();
+  const conversation = await findMemberConversation(req.params.id, me);
+
+  const parsed = mediaMessageSchema.safeParse(req.body ?? {});
+  if (!parsed.success) throw new AppError(400, 'Validation failed', z.flattenError(parsed.error).fieldErrors);
+  const { kind, clientId, text, durationMs, waveform } = parsed.data;
+  if (!req.file) throw new AppError(400, 'No file uploaded');
+
+  const existing = await findRetry(me, clientId);
+  if (existing) {
+    res.json({ success: true, data: { message: toPublicMessage(existing) } });
+    return;
+  }
+
+  let media: StoredMedia;
+  if (kind === 'image') {
+    media = await storeImage(req.file.buffer);
+  } else {
+    if (!durationMs) throw new AppError(400, 'Validation failed', { durationMs: ['Voice notes need a duration'] });
+    media = await storeVoice(req.file.buffer, Math.min(durationMs, MEDIA_LIMITS.voiceMaxMs), waveform ?? []);
+  }
+
+  let message: MessageDoc;
+  try {
+    message = await Message.create({
+      conversation: conversation._id,
+      sender: me,
+      type: kind,
+      text: kind === 'image' ? (text ?? '') : '',
+      media,
+      clientId,
+    });
+  } catch (err) {
+    await deleteMedia(media.key); // don't leave an orphaned file behind
+    throw err;
+  }
+
+  res.status(201).json({ success: true, data: { message: await publishNewMessage(conversation, message) } });
 };
 
 // POST /api/conversations/:id/read — I've seen everything up to now (clears my unread badge).

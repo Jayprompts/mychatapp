@@ -1,9 +1,10 @@
-import { Fragment, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { LoaderCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Lightbox } from '@/components/ui/Lightbox';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { formatDayLabel, isSameDay } from '@/lib/time';
-import { useMessages, useSendMessage } from '../api';
+import { useMessages, useSendMedia, useSendMessage } from '../api';
 import type { Conversation, Message } from '../types';
 import { MessageBubble, type BubblePosition } from './MessageBubble';
 import { TypingBubble } from './TypingBubble';
@@ -16,6 +17,8 @@ type Props = { conversation: Conversation; myId: string; typingUserIds: string[]
 export function MessageList({ conversation, myId, typingUserIds }: Props) {
   const query = useMessages(conversation.id);
   const send = useSendMessage(conversation.id);
+  const sendMedia = useSendMedia(conversation.id);
+  const [lightboxAt, setLightboxAt] = useState<number | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const topSentinelRef = useRef<HTMLDivElement>(null);
 
@@ -24,6 +27,20 @@ export function MessageList({ conversation, myId, typingUserIds }: Props) {
     () => (query.data ? [...query.data.pages].reverse().flatMap((p) => p.messages) : []),
     [query.data],
   );
+
+  // Every photo in the loaded history, for swiping through in the viewer.
+  const photos = useMemo(() => messages.filter((m) => m.type === 'image' && m.media && !m.deletedAt), [messages]);
+
+  const retry = (m: Message) => {
+    if (m.type === 'text') return void send(m.text, m);
+    const blob = m.local?.blob;
+    if (!blob || !m.media) return;
+    if (m.type === 'image') {
+      void sendMedia({ kind: 'image', blob, width: m.media.width ?? 0, height: m.media.height ?? 0, caption: m.text }, m);
+    } else {
+      void sendMedia({ kind: 'voice', blob, durationMs: m.media.durationMs ?? 0, waveform: m.media.waveform ?? [] }, m);
+    }
+  };
 
   const members = useMemo(() => new Map(conversation.members.map((m) => [m.user.id, m])), [conversation.members]);
   const isGroup = conversation.type === 'group';
@@ -144,13 +161,25 @@ export function MessageList({ conversation, myId, typingUserIds }: Props) {
               showSenderName={isGroup}
               position={position(i)}
               receipt={m.id === lastMine?.id ? receipt : undefined}
-              onRetry={(failed) => void send(failed.text, failed)}
+              onRetry={retry}
+              onOpenImage={(img) => setLightboxAt(photos.findIndex((p) => p.id === img.id))}
             />
           </Fragment>
         ))
       )}
 
       {typingUserIds.length > 0 && <TypingBubble users={typingUserIds.map((id) => members.get(id)?.user)} />}
+
+      {lightboxAt !== null && lightboxAt >= 0 && (
+        <Lightbox
+          startIndex={lightboxAt}
+          onClose={() => setLightboxAt(null)}
+          images={photos.map((p) => ({
+            src: p.local?.url ?? p.media!.url,
+            caption: p.text || `${members.get(p.senderId)?.user.displayName ?? ''} · ${formatDayLabel(p.createdAt)}`,
+          }))}
+        />
+      )}
     </div>
   );
 }

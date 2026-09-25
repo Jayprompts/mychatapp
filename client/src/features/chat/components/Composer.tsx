@@ -1,22 +1,41 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
-import { SendHorizontal } from 'lucide-react';
+import { useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent, type ReactNode } from 'react';
+import { ImagePlus, Mic, MicOff, SendHorizontal, Trash2, X } from 'lucide-react';
 import { getSocket } from '@/lib/socket';
 import { cn } from '@/lib/cn';
-import { useSendMessage } from '../api';
+import { ImagePrepError, prepareImage } from '@/lib/image';
+import { useSendMedia, useSendMessage } from '../api';
+import { MAX_RECORDING_MS, useVoiceRecorder, type Recording } from '../useVoiceRecorder';
 
 const TYPING_RESEND_MS = 3000; // re-announce "typing" at most every 3s
 const TYPING_IDLE_MS = 4000; // stop "typing" after 4s without keystrokes
 const MAX_LENGTH = 4000;
+const MAX_PHOTOS_AT_ONCE = 10;
+const MIN_VOICE_MS = 700;
+
+function formatClock(ms: number) {
+  const s = Math.floor(ms / 1000);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
 
 export function Composer({ conversationId }: { conversationId: string }) {
   const [text, setText] = useState('');
+  const [notice, setNotice] = useState<string | null>(null);
   const send = useSendMessage(conversationId);
+  const sendMedia = useSendMedia(conversationId);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const lastTypingSent = useRef(0);
   const idleTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const emitTyping = (isTyping: boolean) => getSocket().emit('typing', { conversationId, isTyping });
+  const sendRecording = (r: Recording) => {
+    if (r.durationMs < MIN_VOICE_MS) return setNotice('That recording was too short — tap the mic and speak, then tap send.');
+    void sendMedia({ kind: 'voice', blob: r.blob, durationMs: r.durationMs, waveform: r.waveform });
+  };
+  const recorder = useVoiceRecorder({ onAutoStop: sendRecording });
+  const recording = recorder.state.status === 'recording' || recorder.state.status === 'requesting';
 
+  // ── typing indicator ──────────────────────────────────────
+  const emitTyping = (isTyping: boolean) => getSocket().emit('typing', { conversationId, isTyping });
   const stopTyping = () => {
     clearTimeout(idleTimer.current);
     if (lastTypingSent.current) {
@@ -24,8 +43,6 @@ export function Composer({ conversationId }: { conversationId: string }) {
       emitTyping(false);
     }
   };
-
-  // Leaving the conversation = stopped typing.
   useEffect(() => stopTyping, [conversationId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Grow with the content, up to ~5 lines.
@@ -38,6 +55,7 @@ export function Composer({ conversationId }: { conversationId: string }) {
 
   const onChange = (value: string) => {
     setText(value);
+    setNotice(null);
     if (!value.trim()) return stopTyping();
     const now = Date.now();
     if (now - lastTypingSent.current > TYPING_RESEND_MS) {
@@ -48,7 +66,7 @@ export function Composer({ conversationId }: { conversationId: string }) {
     idleTimer.current = setTimeout(stopTyping, TYPING_IDLE_MS);
   };
 
-  const submit = () => {
+  const submitText = () => {
     const value = text.trim();
     if (!value) return;
     setText('');
@@ -58,47 +76,183 @@ export function Composer({ conversationId }: { conversationId: string }) {
     textareaRef.current?.focus();
   };
 
+  // ── photos ────────────────────────────────────────────────
+  const sendPhotos = async (files: File[]) => {
+    const images = files.filter((f) => f.type.startsWith('image/'));
+    if (images.length === 0) return;
+    if (images.length > MAX_PHOTOS_AT_ONCE) setNotice(`You can send up to ${MAX_PHOTOS_AT_ONCE} photos at a time.`);
+    for (const file of images.slice(0, MAX_PHOTOS_AT_ONCE)) {
+      try {
+        const prepared = await prepareImage(file);
+        void sendMedia({ kind: 'image', ...prepared });
+      } catch (err) {
+        setNotice(err instanceof ImagePrepError ? err.message : `"${file.name}" couldn't be sent.`);
+      }
+    }
+  };
+
+  const onPaste = (e: ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = Array.from(e.clipboardData.files);
+    if (files.some((f) => f.type.startsWith('image/'))) {
+      e.preventDefault(); // pasting a screenshot sends it as a photo
+      void sendPhotos(files);
+    }
+  };
+
+  // ── voice ─────────────────────────────────────────────────
+  const finishRecording = async () => {
+    const r = await recorder.stop();
+    if (r) sendRecording(r);
+  };
+
+  useEffect(() => {
+    if (!recording) return;
+    const onKey = (e: globalThis.KeyboardEvent) => e.key === 'Escape' && recorder.cancel();
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [recording, recorder]);
+
   // Enter sends, Shift+Enter adds a new line (ignored while an IME is composing, e.g. Japanese input).
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
       e.preventDefault();
-      submit();
+      submitText();
     }
   };
 
-  const canSend = text.trim().length > 0;
+  const hasText = text.trim().length > 0;
+  const iconBtn =
+    'flex size-11 shrink-0 items-center justify-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary';
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        submit();
-      }}
-      className="flex shrink-0 items-end gap-2 border-t border-border bg-card px-3 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4"
-    >
-      <textarea
-        ref={textareaRef}
-        value={text}
-        onChange={(e) => onChange(e.target.value)}
-        onKeyDown={onKeyDown}
-        onBlur={stopTyping}
-        rows={1}
-        maxLength={MAX_LENGTH}
-        placeholder="Aa"
-        aria-label="Message"
-        className="max-h-[140px] min-h-11 flex-1 resize-none rounded-[22px] border-[1.5px] border-border bg-bg px-4 py-2.5 text-[15px] leading-snug text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-primary focus:bg-card"
-      />
-      <button
-        type="submit"
-        disabled={!canSend}
-        aria-label="Send message"
-        className={cn(
-          'flex size-11 shrink-0 items-center justify-center rounded-full text-white transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary',
-          canSend ? 'gradient-brand shadow-brand hover:opacity-95 active:scale-95' : 'bg-border text-text-tertiary',
+    <div className="shrink-0 border-t border-border bg-card">
+      {recorder.state.status === 'denied' && (
+        <Banner icon={<MicOff size={16} />} onDismiss={recorder.reset}>
+          <span>
+            <strong className="font-semibold">Microphone access needed</strong> to record voice notes. If nothing pops up,
+            allow the microphone in your browser&apos;s site settings.
+          </span>
+          <button type="button" onClick={() => void recorder.start()} className="shrink-0 font-semibold text-primary hover:underline">
+            Grant access
+          </button>
+        </Banner>
+      )}
+      {recorder.state.status === 'error' && (
+        <Banner icon={<MicOff size={16} />} onDismiss={recorder.reset}>
+          {recorder.state.message}
+        </Banner>
+      )}
+      {notice && (
+        <Banner onDismiss={() => setNotice(null)}>
+          <span>{notice}</span>
+        </Banner>
+      )}
+
+      <div className="flex items-end gap-1.5 px-2 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:gap-2 sm:px-4">
+        {recording ? (
+          // ── Recording bar ──
+          <>
+            <button
+              type="button"
+              onClick={recorder.cancel}
+              aria-label="Cancel recording"
+              className={cn(iconBtn, 'text-error hover:bg-error/8')}
+            >
+              <Trash2 size={21} />
+            </button>
+            <div className="flex h-11 min-w-0 flex-1 items-center gap-3 rounded-[22px] bg-bg px-4" aria-live="polite">
+              <span className="size-2.5 shrink-0 animate-pulse rounded-full bg-error" aria-hidden />
+              <span className="w-10 shrink-0 text-sm font-medium text-text-primary tabular-nums">
+                {recorder.state.status === 'requesting' ? '…' : formatClock(recorder.elapsedMs)}
+              </span>
+              <div className="flex h-7 min-w-0 flex-1 items-center justify-end gap-[3px] overflow-hidden" aria-hidden>
+                {recorder.liveLevels.map((level, i) => (
+                  <span key={i} className="w-[3px] shrink-0 rounded-full bg-primary" style={{ height: `${Math.max(12, level * 100)}%` }} />
+                ))}
+              </div>
+              {recorder.elapsedMs > MAX_RECORDING_MS - 15_000 && (
+                <span className="shrink-0 text-xs text-error">{Math.ceil((MAX_RECORDING_MS - recorder.elapsedMs) / 1000)}s left</span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => void finishRecording()}
+              disabled={recorder.state.status !== 'recording'}
+              aria-label="Send voice message"
+              className={cn(iconBtn, 'gradient-brand text-white shadow-brand active:scale-95 disabled:opacity-50')}
+            >
+              <SendHorizontal size={20} />
+            </button>
+          </>
+        ) : (
+          // ── Normal composer ──
+          <>
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="Send photos"
+              className={cn(iconBtn, 'text-primary hover:bg-primary/8')}
+            >
+              <ImagePlus size={22} />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              onChange={(e) => {
+                void sendPhotos(Array.from(e.target.files ?? []));
+                e.target.value = ''; // allow picking the same photo again
+              }}
+            />
+            <textarea
+              ref={textareaRef}
+              value={text}
+              onChange={(e) => onChange(e.target.value)}
+              onKeyDown={onKeyDown}
+              onPaste={onPaste}
+              onBlur={stopTyping}
+              rows={1}
+              maxLength={MAX_LENGTH}
+              placeholder="Aa"
+              aria-label="Message"
+              className="max-h-[140px] min-h-11 min-w-0 flex-1 resize-none rounded-[22px] border-[1.5px] border-border bg-bg px-4 py-2.5 text-[15px] leading-snug text-text-primary outline-none transition-colors placeholder:text-text-tertiary focus:border-primary focus:bg-card"
+            />
+            {hasText ? (
+              <button
+                type="button"
+                onClick={submitText}
+                aria-label="Send message"
+                className={cn(iconBtn, 'gradient-brand text-white shadow-brand hover:opacity-95 active:scale-95')}
+              >
+                <SendHorizontal size={20} />
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => void recorder.start()}
+                aria-label="Record voice message"
+                className={cn(iconBtn, 'text-primary hover:bg-primary/8')}
+              >
+                <Mic size={22} />
+              </button>
+            )}
+          </>
         )}
-      >
-        <SendHorizontal size={20} />
+      </div>
+    </div>
+  );
+}
+
+function Banner({ icon, children, onDismiss }: { icon?: ReactNode; children: ReactNode; onDismiss: () => void }) {
+  return (
+    <div role="status" className="flex items-center gap-2.5 border-b border-border bg-warning/10 px-4 py-2.5 text-[13px] text-text-primary">
+      {icon && <span className="shrink-0 text-warning">{icon}</span>}
+      <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-x-3 gap-y-1">{children}</div>
+      <button type="button" onClick={onDismiss} aria-label="Dismiss" className="shrink-0 rounded-full p-1 text-text-secondary hover:text-text-primary">
+        <X size={15} />
       </button>
-    </form>
+    </div>
   );
 }

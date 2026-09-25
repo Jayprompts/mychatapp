@@ -1,4 +1,5 @@
 import type { InfiniteData, QueryClient } from '@tanstack/react-query';
+import { previewFor } from './preview';
 import type { Conversation, Message, MessagesPage } from './types';
 
 // Every change to chat data — from the API, an optimistic send, or a socket event — goes through
@@ -24,7 +25,11 @@ export function upsertMessage(qc: QueryClient, message: Message) {
         if (!same) return m;
         replaced = true;
         // Never downgrade a confirmed message back to an optimistic one.
-        return m.status === undefined && message.status !== undefined ? m : message;
+        if (m.status === undefined && message.status !== undefined) return m;
+        // Once confirmed, keep showing the on-device copy of a photo/voice note (no flash while
+        // the server copy loads) but drop the file itself — it's no longer needed for a retry.
+        if (message.status === undefined && m.local && !message.local) return { ...message, local: { url: m.local.url } };
+        return message;
       }),
     }));
 
@@ -50,7 +55,13 @@ export function applyMessageToList(qc: QueryClient, message: Message, myId: stri
     const updated: Conversation = {
       ...current,
       lastMessage: isNewer
-        ? { id: message.id, senderId: message.senderId, type: message.type, preview: message.text.slice(0, 120), createdAt: message.createdAt }
+        ? {
+            id: message.id,
+            senderId: message.senderId,
+            type: message.type,
+            preview: previewFor(message.type, message.text),
+            createdAt: message.createdAt,
+          }
         : current.lastMessage,
       lastMessageAt: isNewer ? message.createdAt : current.lastMessageAt,
       unreadCount:

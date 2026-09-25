@@ -1,5 +1,6 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
 import mongoose from 'mongoose';
+import multer from 'multer';
 import { AppError } from '../utils/AppError.js';
 import { isProd } from '../config/env.js';
 
@@ -19,6 +20,12 @@ function normalize(err: unknown): unknown {
     const keyValue = 'keyValue' in err && typeof err.keyValue === 'object' && err.keyValue ? err.keyValue : {};
     const field = Object.keys(keyValue)[0] ?? 'value';
     return new AppError(409, `That ${field} is already taken`, { [field]: [`That ${field} is already taken`] });
+  }
+
+  // Upload problems (file too big, wrong field name, too many files…)
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') return new AppError(413, 'File is too large (max 12 MB).');
+    return new AppError(400, `Upload error: ${err.message}`);
   }
 
   // Invalid ObjectId in a URL param, e.g. /api/users/not-an-id

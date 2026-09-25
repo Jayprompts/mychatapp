@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { api, upload } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { useMe } from '@/features/auth/api';
 import { applyMessageToList, applyRead, chatKeys, upsertConversation, upsertMessage } from './cache';
@@ -68,6 +68,7 @@ export function useSendMessage(conversationId: string) {
         senderId: me.id,
         type: 'text',
         text,
+        media: null,
         clientId: retryOf?.clientId ?? newClientId(),
         createdAt: retryOf?.createdAt ?? new Date().toISOString(),
         editedAt: null,
@@ -123,4 +124,75 @@ export function useOpenDirectChat() {
       ),
     onSuccess: (conversation) => upsertConversation(qc, conversation),
   });
+}
+
+export type MediaDraft =
+  | { kind: 'image'; blob: Blob; width: number; height: number; caption?: string }
+  | { kind: 'voice'; blob: Blob; durationMs: number; waveform: number[] };
+
+/**
+ * Photos & voice notes: shown instantly from the device (with upload progress), then swapped for the
+ * server copy. On failure the file is kept in memory so "Tap to retry" can re-upload it.
+ */
+export function useSendMedia(conversationId: string) {
+  const qc = useQueryClient();
+  const { data: me } = useMe();
+
+  return useCallback(
+    async (draft: MediaDraft, retryOf?: Message) => {
+      if (!me) return;
+      const clientId = retryOf?.clientId ?? newClientId();
+      const localUrl = retryOf?.local?.url ?? URL.createObjectURL(draft.blob);
+
+      const optimistic: Message = {
+        id: retryOf?.id ?? `temp-${clientId}`,
+        conversationId,
+        senderId: me.id,
+        type: draft.kind,
+        text: draft.kind === 'image' ? (draft.caption ?? '') : '',
+        media: {
+          url: localUrl,
+          mimeType: draft.blob.type,
+          size: draft.blob.size,
+          durationMs: draft.kind === 'voice' ? draft.durationMs : null,
+          waveform: draft.kind === 'voice' ? draft.waveform : null,
+          width: draft.kind === 'image' ? draft.width : null,
+          height: draft.kind === 'image' ? draft.height : null,
+        },
+        clientId,
+        createdAt: retryOf?.createdAt ?? new Date().toISOString(),
+        editedAt: null,
+        deletedAt: null,
+        status: 'sending',
+        local: { url: localUrl, blob: draft.blob, progress: 0 },
+      };
+      upsertMessage(qc, optimistic);
+      applyMessageToList(qc, optimistic, me.id);
+
+      const form = new FormData();
+      form.append('kind', draft.kind);
+      form.append('clientId', clientId);
+      if (draft.kind === 'image' && draft.caption) form.append('text', draft.caption);
+      if (draft.kind === 'voice') {
+        form.append('durationMs', String(Math.round(draft.durationMs)));
+        form.append('waveform', JSON.stringify(draft.waveform));
+      }
+      const ext = draft.blob.type.split('/')[1]?.split(';')[0] ?? 'bin';
+      form.append('file', draft.blob, `${draft.kind}.${ext}`); // file last: server reads fields first
+
+      let lastShown = 0;
+      try {
+        const { message } = await upload<{ message: Message }>(`/conversations/${conversationId}/media`, form, (p) => {
+          if (p - lastShown < 0.05 && p < 1) return; // ~20 progress updates max
+          lastShown = p;
+          upsertMessage(qc, { ...optimistic, local: { ...optimistic.local!, progress: p } });
+        });
+        upsertMessage(qc, message);
+        applyMessageToList(qc, message, me.id);
+      } catch {
+        upsertMessage(qc, { ...optimistic, status: 'failed' });
+      }
+    },
+    [qc, me, conversationId],
+  );
 }
