@@ -1,4 +1,5 @@
 import { Avatar } from '@/components/ui/Avatar';
+import { CommunityAvatar } from '@/features/communities/components/CommunityAvatar';
 import { cn } from '@/lib/cn';
 import { usePresence } from '../liveState';
 import type { Conversation } from '../types';
@@ -19,6 +20,17 @@ export function ConversationAvatar({
   const others = conversation.members.filter((m) => m.user.id !== myId).map((m) => m.user);
   const other = conversation.type === 'direct' ? others[0] : undefined;
   const presence = usePresence(other);
+
+  if (conversation.type === 'community') {
+    return (
+      <CommunityAvatar
+        icon={conversation.community?.icon ?? '🌱'}
+        theme={conversation.community?.theme ?? 'grove'}
+        size={size}
+        className={className}
+      />
+    );
+  }
 
   if (conversation.type === 'direct') {
     return (

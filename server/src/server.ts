@@ -2,7 +2,7 @@ import http from 'node:http';
 import { app } from './app.js';
 import { env } from './config/env.js';
 import { connectDB, disconnectDB } from './config/db.js';
-import { initSocket } from './sockets/index.js';
+import { closeSockets, initSocket } from './sockets/index.js';
 
 // A raw HTTP server (instead of app.listen) so Socket.io can share it
 const server = http.createServer(app);
@@ -20,8 +20,9 @@ async function start() {
   }
 }
 
-function shutdown(signal: string) {
+async function shutdown(signal: string) {
   console.log(`\n${signal} received — shutting down gracefully…`);
+  await closeSockets(); // also stops the HTTP server from accepting new connections
   server.close(async () => {
     await disconnectDB();
     process.exit(0);
@@ -29,7 +30,7 @@ function shutdown(signal: string) {
   setTimeout(() => process.exit(1), 10_000).unref(); // force-quit if it hangs
 }
 
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => void shutdown('SIGINT'));
+process.on('SIGTERM', () => void shutdown('SIGTERM'));
 
 void start();

@@ -1,6 +1,6 @@
 import { Schema, model, type HydratedDocument, type InferSchemaType } from 'mongoose';
 
-export const CONVERSATION_TYPES = ['direct', 'group'] as const;
+export const CONVERSATION_TYPES = ['direct', 'group', 'community'] as const;
 export const MEMBER_ROLES = ['owner', 'admin', 'member'] as const;
 
 // Per-member state lives on the conversation, so the chat list needs one query (no counting messages).
@@ -36,6 +36,7 @@ const conversationSchema = new Schema(
     name: { type: String, trim: true, maxlength: 80 }, // groups only
     description: { type: String, trim: true, maxlength: 300, default: '' }, // groups only
     avatarUrl: { type: String, default: null }, // groups only
+    community: { type: Schema.Types.ObjectId, ref: 'Community', default: null }, // type 'community' only
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     members: { type: [memberSchema], default: [] },
     lastMessage: { type: lastMessageSchema, default: null },
@@ -52,6 +53,7 @@ export type ConversationDoc = HydratedDocument<InferSchemaType<typeof conversati
 export const Conversation = model('Conversation', conversationSchema);
 
 export const MAX_GROUP_MEMBERS = 100;
+export const MAX_COMMUNITY_MEMBERS = 5000;
 
 export function directKeyFor(userA: string, userB: string): string {
   return [userA, userB].sort().join(':');

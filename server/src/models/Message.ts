@@ -20,7 +20,7 @@ const mediaSchema = new Schema(
 
 // Group events shown as small centered lines ("Jay added Ana"). Names are snapshotted so the line
 // still reads right after someone leaves or renames themselves.
-export const SYSTEM_EVENTS = ['created', 'added', 'removed', 'left', 'renamed', 'role'] as const;
+export const SYSTEM_EVENTS = ['created', 'added', 'removed', 'left', 'renamed', 'role', 'joined'] as const;
 export type SystemEventKind = (typeof SYSTEM_EVENTS)[number];
 
 const personRefSchema = new Schema(
@@ -35,6 +35,7 @@ const systemEventSchema = new Schema(
     targets: { type: [personRefSchema], default: undefined },
     name: { type: String }, // created / renamed: the group name
     role: { type: String }, // role: the new role
+    scope: { type: String, enum: ['group', 'community'], default: 'group' }, // "…left the group" vs "…the community"
   },
   { _id: false },
 );
@@ -118,6 +119,7 @@ export function toPublicMessage(m: MessageDoc) {
           targets: (m.system.targets ?? []).map((t) => ({ id: t.id.toString(), name: t.name })),
           name: m.system.name ?? null,
           role: m.system.role ?? null,
+          scope: m.system.scope ?? 'group',
         }
       : null,
     replyTo: m.replyTo

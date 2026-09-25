@@ -75,13 +75,15 @@ export async function postSystemEvent(
 ) {
   const a = actor.displayName;
   const t = names(event.targets ?? []);
+  const scope = conversation.type === 'community' ? 'community' : 'group';
   const text = {
-    created: `${a} created the group "${event.name}"`,
+    created: `${a} created the ${scope} "${event.name}"`,
     added: `${a} added ${t}`,
     removed: `${a} removed ${t}`,
-    left: `${a} left the group`,
-    renamed: `${a} renamed the group to "${event.name}"`,
+    left: `${a} left the ${scope}`,
+    renamed: `${a} renamed the ${scope} to "${event.name}"`,
     role: `${a} made ${t} ${event.role === 'admin' ? 'an admin' : 'a member'}`,
+    joined: `${a} joined the ${scope}`,
   }[event.kind];
 
   const message = await Message.create({
@@ -89,7 +91,7 @@ export async function postSystemEvent(
     sender: actor._id,
     type: 'system',
     text,
-    system: { kind: event.kind, actor: person(actor), targets: event.targets, name: event.name, role: event.role },
+    system: { kind: event.kind, actor: person(actor), targets: event.targets, name: event.name, role: event.role, scope },
   });
   return publishNewMessage(conversation, message, { countUnread: false });
 }

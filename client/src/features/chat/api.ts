@@ -261,10 +261,13 @@ export function useRemoveMember(conversationId: string) {
     mutationFn: (userId: string) =>
       api<{ deleted: boolean }>(`/conversations/${conversationId}/members/${userId}`, { method: 'DELETE' }),
     // Hook-level callbacks still run after the chat screen unmounts (the "you left" socket event can
-    // remove the conversation before this request even finishes).
-    onSuccess: (_data, userId) => {
+    // remove the conversation before this request even finishes — so note its type up front).
+    onMutate: () => ({
+      type: qc.getQueryData<Conversation[]>(chatKeys.conversations)?.find((c) => c.id === conversationId)?.type,
+    }),
+    onSuccess: (_data, userId, context) => {
       if (userId !== me?.id) return;
-      navigate('/chats', { replace: true });
+      navigate(context?.type === 'community' ? '/communities' : '/chats', { replace: true });
       removeConversation(qc, conversationId);
     },
   });

@@ -8,6 +8,7 @@ import { WelcomePage } from '@/features/auth/pages/WelcomePage';
 import { BlogPage } from '@/pages/BlogPage';
 import { ChatsPage } from '@/pages/ChatsPage';
 import { CommunitiesPage } from '@/pages/CommunitiesPage';
+import { InvitePage } from '@/pages/InvitePage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { ProfilePage } from '@/pages/ProfilePage';
 import { RouteErrorPage } from '@/pages/RouteErrorPage';
@@ -42,7 +43,8 @@ export const router = createBrowserRouter([
               // One route for the list and an open conversation (optional :conversationId), so the
               // chat list stays mounted while switching conversations.
               { path: '/chats/:conversationId?', element: <ChatsPage /> },
-              { path: '/communities', element: <CommunitiesPage /> },
+              { path: '/communities/:communityId?', element: <CommunitiesPage /> },
+              { path: '/join/:code', element: <InvitePage /> },
               { path: '/blog', element: <BlogPage /> },
               { path: '/profile', element: <ProfilePage /> },
             ],

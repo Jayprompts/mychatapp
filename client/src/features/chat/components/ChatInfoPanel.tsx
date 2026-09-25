@@ -14,14 +14,19 @@ import { usePresence } from '../liveState';
 import type { Conversation, ConversationMember, UserSummary } from '../types';
 import { ConversationAvatar } from './ConversationAvatar';
 import { PeoplePicker } from './PeoplePicker';
+import { ROLE_ORDER, sectionTitle } from '../infoShared';
+import { CommunityInfoPanel } from '@/features/communities/components/CommunityInfoPanel';
 
 type Props = { conversation: Conversation; myId: string; onClose: () => void };
 
-const ROLE_ORDER = { owner: 0, admin: 1, member: 2 } as const;
-const sectionTitle = 'mb-2 text-[11px] font-bold tracking-[0.08em] text-text-secondary uppercase';
 
 // Right-hand panel on desktop, full screen on phones/tablets (per the design's Group Info screen).
-export function ChatInfoPanel({ conversation: c, myId, onClose }: Props) {
+export function ChatInfoPanel(props: Props) {
+  if (props.conversation.type === 'community') return <CommunityInfoPanel {...props} />;
+  return <GroupOrDirectInfoPanel {...props} />;
+}
+
+function GroupOrDirectInfoPanel({ conversation: c, myId, onClose }: Props) {
   const isGroup = c.type === 'group';
   const isAdmin = c.myRole === 'owner' || c.myRole === 'admin';
   const other = !isGroup ? c.members.find((m) => m.user.id !== myId)?.user : undefined;
@@ -137,7 +142,7 @@ export function ChatInfoPanel({ conversation: c, myId, onClose }: Props) {
   );
 }
 
-function MemberRow({ member: m, conversation: c, myId }: { member: ConversationMember; conversation: Conversation; myId: string }) {
+export function MemberRow({ member: m, conversation: c, myId }: { member: ConversationMember; conversation: Conversation; myId: string }) {
   const presence = usePresence(m.user);
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmRemove, setConfirmRemove] = useState(false);
@@ -250,7 +255,7 @@ function MenuItem({ icon, label, onClick, danger }: { icon: ReactNode; label: st
   );
 }
 
-function SharedMedia({ conversationId }: { conversationId: string }) {
+export function SharedMedia({ conversationId }: { conversationId: string }) {
   const media = useSharedMedia(conversationId);
   const [openAt, setOpenAt] = useState<number | null>(null);
   const photos = media.data ?? [];

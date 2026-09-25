@@ -119,7 +119,7 @@ type HeaderProps = {
 };
 
 function ChatHeader({ conversation, myId, typingUserIds, infoOpen, onToggleInfo }: HeaderProps) {
-  const isGroup = conversation.type === 'group';
+  const isGroup = conversation.type !== 'direct'; // groups + communities
   const other = !isGroup ? conversation.members.find((m) => m.user.id !== myId)?.user : undefined;
   const presence = usePresence(other);
 
@@ -130,15 +130,15 @@ function ChatHeader({ conversation, myId, typingUserIds, infoOpen, onToggleInfo 
     ? isGroup
       ? typingText(typingNames)
       : 'typing…'
-    : isGroup
-      ? `${conversation.members.length} members`
+    : conversation.type !== 'direct'
+      ? `${conversation.members.length.toLocaleString()} ${conversation.members.length === 1 ? 'member' : 'members'}`
       : formatLastSeen(presence.online, presence.lastSeenAt);
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-1 border-b border-border bg-card px-2 sm:px-4">
       <Link
-        to="/chats"
-        aria-label="Back to chats"
+        to={conversation.type === 'community' ? '/communities' : '/chats'}
+        aria-label={conversation.type === 'community' ? 'Back to communities' : 'Back to chats'}
         className="flex size-10 shrink-0 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/8 md:hidden"
       >
         <ArrowLeft size={22} />

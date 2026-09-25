@@ -73,7 +73,7 @@ export function MessageList({ conversation, myId, typingUserIds, onReply, onEdit
       toast("Couldn't copy", 'error');
     }
   };
-  const isGroup = conversation.type === 'group';
+  const isGroup = conversation.type !== 'direct';
 
   // Read receipt on my latest message: "Seen" once every other member has read it,
   // "Seen by N" while only some have (groups), otherwise "Sent".

@@ -19,17 +19,20 @@ export function formatSystemEvent(e: SystemEvent, myId: string): string {
     return n.length <= 2 ? n.join(' and ') : `${n[0]}, ${n[1]} and ${n.length - 2} others`;
   };
   const actor = who(e.actor);
+  const scope = e.scope ?? 'group';
   switch (e.kind) {
     case 'created':
-      return `${actor} created the group "${e.name}"`;
+      return `${actor} created the ${scope} "${e.name}"`;
     case 'added':
       return `${actor} added ${list(e.targets)}`;
     case 'removed':
       return `${actor} removed ${list(e.targets)}`;
     case 'left':
-      return `${actor} left the group`;
+      return `${actor} left the ${scope}`;
     case 'renamed':
-      return `${actor} renamed the group to "${e.name}"`;
+      return `${actor} renamed the ${scope} to "${e.name}"`;
+    case 'joined':
+      return `${actor} joined the ${scope}`;
     case 'role':
       return `${actor} made ${list(e.targets)} ${e.role === 'admin' ? 'an admin' : 'a member'}`;
   }

@@ -14,6 +14,14 @@ type GroveServer = Server<ClientToServerEvents, ServerToClientEvents, Record<str
 type GroveSocket = Socket<ClientToServerEvents, ServerToClientEvents, Record<string, never>, SocketData>;
 
 let io: GroveServer | null = null;
+let shuttingDown = false;
+
+// Called on deploy/restart: drop sockets without writing "last seen" (the DB is closing, and
+// everyone reconnects to the new process within seconds anyway).
+export function closeSockets(): Promise<void> {
+  shuttingDown = true;
+  return new Promise((resolve) => (io ? io.close(() => resolve()) : resolve()));
+}
 
 // Every user has a private room; emitting to it reaches all their tabs/devices.
 export const userRoom = (userId: string) => `user:${userId}`;
@@ -90,7 +98,7 @@ export function initSocket(server: http.Server) {
     });
 
     socket.on('disconnect', async () => {
-      if (!removeConnection(userId)) return; // still connected on another tab/device
+      if (!removeConnection(userId) || shuttingDown) return; // still connected elsewhere, or server stopping
       try {
         const lastSeenAt = new Date();
         await User.updateOne({ _id: userId }, { lastSeenAt });

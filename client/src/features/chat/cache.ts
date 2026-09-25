@@ -102,6 +102,12 @@ export function upsertConversation(qc: QueryClient, conversation: Conversation) 
 
 /** I left or was removed: drop the conversation and its history from this device. */
 export function removeConversation(qc: QueryClient, conversationId: string) {
+  // A community chat: forget its "you're a member" detail so the page falls back to the preview / not-found.
+  const communityId = qc.getQueryData<Conversation[]>(chatKeys.conversations)?.find((c) => c.id === conversationId)?.community?.id;
+  if (communityId) {
+    qc.removeQueries({ queryKey: ['communities', 'detail', communityId] });
+    void qc.invalidateQueries({ queryKey: ['communities', 'discover'] });
+  }
   qc.setQueryData<Conversation[]>(chatKeys.conversations, (old) => old?.filter((c) => c.id !== conversationId));
   qc.removeQueries({ queryKey: chatKeys.messages(conversationId) });
   qc.removeQueries({ queryKey: ['sharedMedia', conversationId] });

@@ -37,7 +37,7 @@ export type StoredMedia = {
 };
 
 // "images/2026/09/<uuid>.webp" — random names, grouped by month so no folder gets huge.
-function newKey(folder: 'images' | 'voice', ext: string): string {
+function newKey(folder: 'images' | 'voice' | 'covers', ext: string): string {
   const now = new Date();
   const month = String(now.getUTCMonth() + 1).padStart(2, '0');
   return `${folder}/${now.getUTCFullYear()}/${month}/${crypto.randomUUID()}.${ext}`;
@@ -101,4 +101,23 @@ export async function storeVoice(buffer: Buffer, durationMs: number, waveform: n
   const key = newKey('voice', format.ext);
   await writeMedia(key, buffer);
   return { key, mimeType: format.mime, size: buffer.length, durationMs, waveform };
+}
+
+// Community cover photos: cropped to a 3:1 banner, WebP, metadata stripped.
+export async function storeCover(buffer: Buffer): Promise<string> {
+  const type = await fileTypeFromBuffer(buffer);
+  if (!type || !IMAGE_INPUTS.has(type.mime)) throw new AppError(415, 'Unsupported image. Use a JPG, PNG, WebP or AVIF photo.');
+  let data: Buffer;
+  try {
+    data = await sharp(buffer, { limitInputPixels: 50_000_000 })
+      .rotate()
+      .resize({ width: 1200, height: 400, fit: 'cover', position: 'attention' }) // keeps the interesting part
+      .webp({ quality: 80 })
+      .toBuffer();
+  } catch {
+    throw new AppError(422, "That image couldn't be processed. Try a different photo.");
+  }
+  const key = newKey('covers', 'webp');
+  await writeMedia(key, data);
+  return key;
 }

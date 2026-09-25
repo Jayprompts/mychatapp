@@ -1,5 +1,6 @@
 import type { RequestHandler } from 'express';
-import { Conversation, MAX_GROUP_MEMBERS, type ConversationDoc } from '../models/Conversation.js';
+import { Community } from '../models/Community.js';
+import { Conversation, MAX_COMMUNITY_MEMBERS, MAX_GROUP_MEMBERS, type ConversationDoc } from '../models/Conversation.js';
 import { Message } from '../models/Message.js';
 import { User } from '../models/User.js';
 import { authUser } from '../middleware/auth.js';
@@ -11,6 +12,7 @@ import {
   postSystemEvent,
   roleOf,
 } from '../services/conversations.js';
+import { destroyCommunityData, syncCommunity } from '../services/communities.js';
 import { deleteMedia } from '../services/media.js';
 import { emitToUsers } from '../sockets/index.js';
 import { AppError } from '../utils/AppError.js';
@@ -24,11 +26,13 @@ import type { AddMembersInput, CreateGroupInput, SetRoleInput, UpdateGroupInput 
 
 const isAdmin = (role?: string) => role === 'owner' || role === 'admin';
 
+// Groups and community chats share member management (add / remove / leave / roles).
 async function findGroup(id: unknown, userId: string): Promise<ConversationDoc> {
   const conversation = await findMemberConversation(id, userId);
-  if (conversation.type !== 'group') throw new AppError(400, 'This is not a group chat');
+  if (conversation.type === 'direct') throw new AppError(400, 'This is not a group chat');
   return conversation;
 }
+const maxMembers = (c: ConversationDoc) => (c.type === 'community' ? MAX_COMMUNITY_MEMBERS : MAX_GROUP_MEMBERS);
 
 async function reload(id: unknown): Promise<ConversationDoc> {
   const conversation = await Conversation.findById(id);
@@ -71,6 +75,7 @@ export const updateGroup: RequestHandler = async (req, res) => {
   const me = authUser(req);
   const meId = me._id.toString();
   const group = await findGroup(req.params.id, meId);
+  if (group.type === 'community') throw new AppError(400, 'Edit communities from their settings');
   if (!isAdmin(roleOf(group, meId))) throw new AppError(403, 'Only group admins can edit the group');
 
   const { name, description } = req.body as UpdateGroupInput;
@@ -92,11 +97,18 @@ export const addMembers: RequestHandler = async (req, res) => {
   const meId = me._id.toString();
   const group = await findGroup(req.params.id, meId);
 
+  if (group.type === 'community') {
+    const community = await Community.findOne({ conversation: group._id }).select('visibility');
+    if (community?.visibility === 'private' && !isAdmin(roleOf(group, meId))) {
+      throw new AppError(403, 'Only admins can add people to a private community');
+    }
+  }
+
   const existing = new Set(group.members.map((m) => m.user.toString()));
   const newIds = (req.body as AddMembersInput).userIds.filter((id) => !existing.has(id));
   if (newIds.length === 0) throw new AppError(400, 'Everyone you picked is already in the group');
-  if (existing.size + newIds.length > MAX_GROUP_MEMBERS) {
-    throw new AppError(400, `Groups can have up to ${MAX_GROUP_MEMBERS} members`);
+  if (existing.size + newIds.length > maxMembers(group)) {
+    throw new AppError(400, `This chat can have up to ${maxMembers(group)} members`);
   }
   const users = await activeUsers(newIds);
 
@@ -107,6 +119,10 @@ export const addMembers: RequestHandler = async (req, res) => {
   );
 
   const updated = await reload(group._id);
+  if (updated.type === 'community') {
+    await syncCommunity(updated);
+    await Community.updateOne({ conversation: updated._id }, { $pull: { joinRequests: { user: { $in: newIds } } } });
+  }
   await postSystemEvent(updated, me, { kind: 'added', targets: users.map(person) }); // new members see this first
   emitConversationUpdated(updated);
   res.json({ success: true, data: { conversation: await buildConversationView(updated, meId) } });
@@ -133,7 +149,13 @@ export const removeMember: RequestHandler = async (req, res) => {
   await Conversation.updateOne({ _id: group._id }, { $pull: { members: { user: targetId } } });
   let updated = await reload(group._id);
 
-  // Last person out: delete the group, its messages and files.
+  // Last person out: delete the group (or community), its messages and files.
+  if (updated.members.length === 0 && updated.type === 'community') {
+    await destroyCommunityData(group._id);
+    emitToUsers([targetId], 'conversation:removed', { conversationId: group._id.toString() });
+    res.json({ success: true, data: { deleted: true } });
+    return;
+  }
   if (updated.members.length === 0) {
     const withMedia = await Message.find({ conversation: group._id, media: { $ne: null } }).select('media');
     await Promise.all(withMedia.map((m) => (m.media ? deleteMedia(m.media.key) : null)));
@@ -151,6 +173,7 @@ export const removeMember: RequestHandler = async (req, res) => {
     await Conversation.updateOne({ _id: group._id, 'members.user': heir.user }, { $set: { 'members.$.role': 'owner' } });
     updated = await reload(group._id);
   }
+  await syncCommunity(updated); // member count / owner (no-op for groups)
 
   if (leaving) await postSystemEvent(updated, me, { kind: 'left' });
   else if (target) await postSystemEvent(updated, me, { kind: 'removed', targets: [person(target)] });

@@ -22,15 +22,18 @@ export function ConversationList({ activeId }: { activeId?: string }) {
   const [filter, setFilter] = useState('');
   const [newChatOpen, setNewChatOpen] = useState(false);
 
+  // Community chats live in the Communities tab.
+  const chats = useMemo(() => (conversations.data ?? []).filter((c) => c.type !== 'community'), [conversations.data]);
+
   const visible = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    if (!q) return conversations.data ?? [];
-    return (conversations.data ?? []).filter(
+    if (!q) return chats;
+    return chats.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
         c.members.some((m) => m.user.id !== me?.id && m.user.username.includes(q)),
     );
-  }, [conversations.data, filter, me?.id]);
+  }, [chats, filter, me?.id]);
 
   return (
     <div className="relative flex min-h-0 flex-1 flex-col">
@@ -61,7 +64,7 @@ export function ConversationList({ activeId }: { activeId?: string }) {
               Try again
             </Button>
           </div>
-        ) : conversations.data.length === 0 ? (
+        ) : chats.length === 0 ? (
           <EmptyState
             icon={MessageCircle}
             title="No conversations yet"

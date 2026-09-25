@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { COMMUNITY_CATEGORIES, COMMUNITY_THEMES, VISIBILITIES } from '../models/Community.js';
 import { objectIdSchema } from '../utils/objectId.js';
 
 export const openDirectSchema = z.object({
@@ -87,3 +88,39 @@ export type CreateGroupInput = z.infer<typeof createGroupSchema>;
 export type UpdateGroupInput = z.infer<typeof updateGroupSchema>;
 export type AddMembersInput = z.infer<typeof addMembersSchema>;
 export type SetRoleInput = z.infer<typeof setRoleSchema>;
+
+// ── Communities ─────────────────────────────────────────────
+
+const communityName = z.string().trim().min(3, 'Name must be at least 3 characters').max(50, 'Name is too long (max 50)');
+const communityDescription = z.string().trim().max(300, 'Description is too long (max 300)');
+const emojiIcon = z.string().min(1).max(16);
+
+export const createCommunitySchema = z.object({
+  name: communityName,
+  description: communityDescription.optional(),
+  category: z.enum(COMMUNITY_CATEGORIES),
+  visibility: z.enum(VISIBILITIES).default('public'),
+  icon: emojiIcon.optional(),
+  theme: z.enum(COMMUNITY_THEMES).optional(),
+});
+
+export const updateCommunitySchema = z
+  .object({
+    name: communityName.optional(),
+    description: communityDescription.optional(),
+    category: z.enum(COMMUNITY_CATEGORIES).optional(),
+    visibility: z.enum(VISIBILITIES).optional(),
+    icon: emojiIcon.optional(),
+    theme: z.enum(COMMUNITY_THEMES).optional(),
+    removeCover: z.boolean().optional(),
+  })
+  .refine((d) => Object.values(d).some((v) => v !== undefined), 'Nothing to update');
+
+export const discoverQuerySchema = z.object({
+  q: z.string().trim().max(50).optional(),
+  category: z.enum(COMMUNITY_CATEGORIES).optional(),
+  page: z.coerce.number().int().min(1).max(100).default(1),
+});
+
+export type CreateCommunityInput = z.infer<typeof createCommunitySchema>;
+export type UpdateCommunityInput = z.infer<typeof updateCommunitySchema>;

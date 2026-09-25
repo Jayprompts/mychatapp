@@ -15,6 +15,7 @@ export interface ServerToClientEvents {
   typing: (payload: TypingPayload) => void;
   'conversation:updated': (payload: { conversationId: string }) => void; // refetch its details
   'conversation:removed': (payload: { conversationId: string }) => void; // you're no longer a member
+  'community:updated': (payload: { communityId: string }) => void; // refetch (requests, approvals, edits)
 }
 
 export interface ClientToServerEvents {

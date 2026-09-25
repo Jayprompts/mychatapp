@@ -15,9 +15,19 @@ export type ConversationMember = {
   lastReadAt: string;
 };
 
+export type ConversationCommunity = {
+  id: string;
+  icon: string;
+  theme: 'grove' | 'ocean' | 'sunset' | 'forest' | 'berry' | 'night';
+  visibility: 'public' | 'private';
+  category: string;
+  coverUrl: string | null;
+};
+
 export type Conversation = {
   id: string;
-  type: 'direct' | 'group';
+  type: 'direct' | 'group' | 'community';
+  community: ConversationCommunity | null; // community chats only
   name: string;
   avatarUrl: string | null;
   description: string; // groups only
@@ -42,7 +52,8 @@ export type PersonRef = { id: string; name: string };
 
 /** Group events shown as centered lines: "Jay added Ana". */
 export type SystemEvent = {
-  kind: 'created' | 'added' | 'removed' | 'left' | 'renamed' | 'role';
+  kind: 'created' | 'added' | 'removed' | 'left' | 'renamed' | 'role' | 'joined';
+  scope?: 'group' | 'community';
   actor: PersonRef;
   targets: PersonRef[];
   name: string | null;
@@ -97,6 +108,7 @@ export interface ServerToClientEvents {
   typing: (payload: TypingPayload) => void;
   'conversation:updated': (payload: { conversationId: string }) => void;
   'conversation:removed': (payload: { conversationId: string }) => void;
+  'community:updated': (payload: { communityId: string }) => void;
 }
 
 export interface ClientToServerEvents {

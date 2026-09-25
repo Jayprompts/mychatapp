@@ -72,6 +72,13 @@ export function useChatRealtime(myId: string | undefined) {
     // I left or was removed from a group.
     socket.on('conversation:removed', ({ conversationId }) => removeConversation(qc, conversationId));
 
+    // Join requests, approvals, edits: refetch community data (approved users also get the chat via message:new).
+    socket.on('community:updated', ({ communityId }) => {
+      void qc.invalidateQueries({ queryKey: ['communities', 'detail', communityId] });
+      void qc.invalidateQueries({ queryKey: ['communities', 'discover'] });
+      void qc.invalidateQueries({ queryKey: chatKeys.conversations });
+    });
+
     socket.on('typing', ({ conversationId, userId, isTyping }) => {
       setTyping(conversationId, userId, isTyping);
     });

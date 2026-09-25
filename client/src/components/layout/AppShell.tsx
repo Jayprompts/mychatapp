@@ -18,12 +18,15 @@ export function AppShell() {
   useChatRealtime(user?.id); // live connection for the whole logged-in app
 
   const { data: conversations } = useConversations();
-  const unread = conversations?.reduce((sum, c) => sum + c.unreadCount, 0) ?? 0;
-  const inConversation = useMatch('/chats/:conversationId') !== null;
+  const unreadOf = (community: boolean) =>
+    conversations?.reduce((sum, c) => sum + ((c.type === 'community') === community ? c.unreadCount : 0), 0) ?? 0;
+  const inChat = useMatch('/chats/:conversationId') !== null;
+  const inCommunity = useMatch('/communities/:communityId') !== null;
+  const inConversation = inChat || inCommunity;
 
   const nav: NavItem[] = [
-    { to: '/chats', label: 'Chats', icon: MessageCircle, badge: unread },
-    { to: '/communities', label: 'Communities', icon: Users },
+    { to: '/chats', label: 'Chats', icon: MessageCircle, badge: unreadOf(false) },
+    { to: '/communities', label: 'Communities', icon: Users, badge: unreadOf(true) },
     { to: '/blog', label: 'Blog', icon: Newspaper },
     { to: '/profile', label: 'Profile', icon: User },
   ];
