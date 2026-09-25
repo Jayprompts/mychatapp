@@ -6,6 +6,8 @@ import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { RegisterPage } from '@/features/auth/pages/RegisterPage';
 import { WelcomePage } from '@/features/auth/pages/WelcomePage';
 import { BlogPage } from '@/pages/BlogPage';
+import { PostEditorPage } from '@/pages/PostEditorPage';
+import { PostPage } from '@/pages/PostPage';
 import { ChatsPage } from '@/pages/ChatsPage';
 import { CommunitiesPage } from '@/pages/CommunitiesPage';
 import { InvitePage } from '@/pages/InvitePage';
@@ -46,6 +48,9 @@ export const router = createBrowserRouter([
               { path: '/communities/:communityId?', element: <CommunitiesPage /> },
               { path: '/join/:code', element: <InvitePage /> },
               { path: '/blog', element: <BlogPage /> },
+              // One route for new + edit, so creating the draft doesn't remount the editor.
+              { path: '/blog/write/:postId?', element: <PostEditorPage /> },
+              { path: '/blog/:postId', element: <PostPage /> },
               { path: '/profile', element: <ProfilePage /> },
             ],
           },

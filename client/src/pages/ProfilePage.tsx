@@ -1,4 +1,5 @@
-import { CalendarDays, LogOut, Mail, MonitorSmartphone } from 'lucide-react';
+import { Link } from 'react-router';
+import { Bookmark, CalendarDays, ChevronRight, LogOut, Mail, MonitorSmartphone, PenLine } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { RoleBadge } from '@/components/ui/Badge';
 import { Button } from '@/components/ui/Button';
@@ -43,6 +44,24 @@ export function ProfilePage() {
             </ul>
           </div>
         </section>
+
+        <nav aria-label="Your posts" className="mt-4 overflow-hidden rounded-xl bg-card shadow-card">
+          {[
+            { to: '/blog?tab=saved', icon: Bookmark, label: 'Saved posts', hint: 'Posts you bookmarked' },
+            { to: '/blog?tab=mine', icon: PenLine, label: 'My posts', hint: 'Your drafts and published posts' },
+          ].map(({ to, icon: Icon, label, hint }, i) => (
+            <Link key={to} to={to} className={`flex items-center gap-3.5 px-6 py-4 transition-colors hover:bg-bg ${i ? 'border-t border-border' : ''}`}>
+              <span className="flex size-10 items-center justify-center rounded-[12px] bg-primary/8 text-primary">
+                <Icon size={19} />
+              </span>
+              <span className="flex-1">
+                <span className="block text-[15px] font-semibold text-text-primary">{label}</span>
+                <span className="block text-[13px] text-text-secondary">{hint}</span>
+              </span>
+              <ChevronRight size={18} className="text-text-tertiary" />
+            </Link>
+          ))}
+        </nav>
 
         <section className="mt-4 flex flex-col gap-3 rounded-xl bg-card p-6 shadow-card">
           <h3 className="text-base font-semibold text-text-primary">Session</h3>

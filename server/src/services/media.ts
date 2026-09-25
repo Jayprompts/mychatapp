@@ -103,15 +103,15 @@ export async function storeVoice(buffer: Buffer, durationMs: number, waveform: n
   return { key, mimeType: format.mime, size: buffer.length, durationMs, waveform };
 }
 
-// Community cover photos: cropped to a 3:1 banner, WebP, metadata stripped.
-export async function storeCover(buffer: Buffer): Promise<string> {
+// Cover photos: cropped to a banner (communities 3:1, blog posts 5:2), WebP, metadata stripped.
+export async function storeCover(buffer: Buffer, size = { width: 1200, height: 400 }): Promise<string> {
   const type = await fileTypeFromBuffer(buffer);
   if (!type || !IMAGE_INPUTS.has(type.mime)) throw new AppError(415, 'Unsupported image. Use a JPG, PNG, WebP or AVIF photo.');
   let data: Buffer;
   try {
     data = await sharp(buffer, { limitInputPixels: 50_000_000 })
       .rotate()
-      .resize({ width: 1200, height: 400, fit: 'cover', position: 'attention' }) // keeps the interesting part
+      .resize({ ...size, fit: 'cover', position: 'attention' }) // keeps the interesting part
       .webp({ quality: 80 })
       .toBuffer();
   } catch {

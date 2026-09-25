@@ -55,3 +55,10 @@ export function formatLastSeen(online: boolean, lastSeenAt: string | null): stri
   if (daysAgo(new Date(lastSeenAt)) === 1) return 'Active yesterday';
   return `Active ${new Date(lastSeenAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`;
 }
+
+/** Blog dates: "18 Sep" this year, "18 Sep 2025" before. */
+export function formatPostDate(iso: string): string {
+  const date = new Date(iso);
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString(undefined, { day: 'numeric', month: 'short', ...(sameYear ? {} : { year: 'numeric' }) });
+}

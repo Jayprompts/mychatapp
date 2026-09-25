@@ -15,7 +15,10 @@ export function WelcomePage() {
         <LogoMark size={72} className="relative shadow-none ring-2 ring-white/30" />
       </div>
 
-      <Logo size={40} className="mb-8 hidden sm:inline-flex" />
+      {/* Wrapper does the hiding: Logo's own inline-flex would override `hidden` */}
+      <div className="mb-8 hidden sm:block">
+        <Logo size={40} />
+      </div>
 
       <h1 className="text-[30px] leading-tight font-bold tracking-tight text-text-primary sm:text-[32px]">
         Where your people gather.

@@ -11,7 +11,7 @@ import { cn } from '@/lib/cn';
 type NavItem = { to: string; label: string; icon: LucideIcon; badge?: number };
 
 // Logged-in app frame:
-//   mobile  (<640)  content + fixed bottom tab bar (hidden inside an open conversation)
+//   mobile  (<640)  content + fixed bottom tab bar (hidden inside an open conversation, post or editor)
 //   tablet+ (640+)  slim icon rail on the left + content
 export function AppShell() {
   const { data: user } = useMe();
@@ -22,7 +22,9 @@ export function AppShell() {
     conversations?.reduce((sum, c) => sum + ((c.type === 'community') === community ? c.unreadCount : 0), 0) ?? 0;
   const inChat = useMatch('/chats/:conversationId') !== null;
   const inCommunity = useMatch('/communities/:communityId') !== null;
-  const inConversation = inChat || inCommunity;
+  const inPost = useMatch('/blog/:postId') !== null; // reading and writing are full-screen
+  const inEditor = useMatch('/blog/write/:postId?') !== null;
+  const inConversation = inChat || inCommunity || inPost || inEditor;
 
   const nav: NavItem[] = [
     { to: '/chats', label: 'Chats', icon: MessageCircle, badge: unreadOf(false) },
