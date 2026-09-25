@@ -15,6 +15,9 @@
   --color-warning: #F7B928;
   --color-error: #FA383E;
   --color-online: #31A24C;
+  --color-surface-2: #F0F2F5;
+  --color-text-tertiary: #A0A2A9;
+  --color-community: #8B5CF6;
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -25,10 +28,19 @@
   --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.08);
   --shadow-modal: 0 8px 40px rgba(0, 0, 0, 0.16);
   --shadow-toast: 0 4px 20px rgba(0, 0, 0, 0.12);
+  --shadow-brand: 0 4px 16px rgba(8, 102, 255, 0.25);
 }
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+#root {
+  min-height: 100dvh;
 }
 
 body {
