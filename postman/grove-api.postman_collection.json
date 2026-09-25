@@ -1,14 +1,30 @@
 {
   "info": {
     "name": "Grove API",
-    "description": "Grove chat app API. Requires the \"Grove Local\" environment with baseUrl = http://localhost:4000/api.\n\nRun the whole collection top-to-bottom (Runner) to test every phase. Edit the collection variables (username, email, password) to your own account first.",
+    "description": "Grove chat app API. Requires the \"Grove Local\" environment with baseUrl = http://localhost:4000/api.\n\nRun the whole collection top-to-bottom (Runner) to test every phase. Edit the collection variables (username, email, password) to your own account first.\n\nChat folder: set the collection variable `chatWith` to the username of a SECOND account you registered (e.g. from the browser), then run the folder while logged in (run Auth → Login first).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    { "key": "username", "value": "jay" },
-    { "key": "displayName", "value": "Jay" },
-    { "key": "email", "value": "you@example.com" },
-    { "key": "password", "value": "Grove2026pass" }
+    {
+      "key": "username",
+      "value": "jay"
+    },
+    {
+      "key": "displayName",
+      "value": "Jay"
+    },
+    {
+      "key": "email",
+      "value": "you@example.com"
+    },
+    {
+      "key": "password",
+      "value": "Grove2026pass"
+    },
+    {
+      "key": "chatWith",
+      "value": ""
+    }
   ],
   "item": [
     {
@@ -28,7 +44,10 @@
               }
             }
           ],
-          "request": { "method": "GET", "url": "{{baseUrl}}/health" }
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health"
+          }
         },
         {
           "name": "Unknown route → 404",
@@ -44,7 +63,10 @@
               }
             }
           ],
-          "request": { "method": "GET", "url": "{{baseUrl}}/nope" }
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/nope"
+          }
         }
       ]
     },
@@ -68,8 +90,16 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"username\": \"ab\",\n  \"email\": \"nope\",\n  \"password\": \"short\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"ab\",\n  \"email\": \"nope\",\n  \"password\": \"short\"\n}"
+            },
             "url": "{{baseUrl}}/auth/register"
           }
         },
@@ -94,7 +124,12 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"username\": \"{{username}}\",\n  \"displayName\": \"{{displayName}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
@@ -119,8 +154,16 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"identifier\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
             "url": "{{baseUrl}}/auth/login"
           }
         },
@@ -138,7 +181,10 @@
               }
             }
           ],
-          "request": { "method": "GET", "url": "{{baseUrl}}/auth/me" }
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me"
+          }
         },
         {
           "name": "Logout",
@@ -147,11 +193,16 @@
               "listen": "test",
               "script": {
                 "type": "text/javascript",
-                "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"]
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
               }
             }
           ],
-          "request": { "method": "POST", "url": "{{baseUrl}}/auth/logout" }
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/logout"
+          }
         },
         {
           "name": "Me after logout → 401",
@@ -160,11 +211,16 @@
               "listen": "test",
               "script": {
                 "type": "text/javascript",
-                "exec": ["pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"]
+                "exec": [
+                  "pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"
+                ]
               }
             }
           ],
-          "request": { "method": "GET", "url": "{{baseUrl}}/auth/me" }
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/auth/me"
+          }
         },
         {
           "name": "Login — wrong password → 401",
@@ -182,8 +238,16 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"identifier\": \"{{username}}\",\n  \"password\": \"definitelyWrong1\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{username}}\",\n  \"password\": \"definitelyWrong1\"\n}"
+            },
             "url": "{{baseUrl}}/auth/login"
           }
         },
@@ -194,14 +258,24 @@
               "listen": "test",
               "script": {
                 "type": "text/javascript",
-                "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"]
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
               }
             }
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"identifier\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
             "url": "{{baseUrl}}/auth/login"
           }
         },
@@ -224,27 +298,49 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "X-Auth-Mode", "value": "bearer" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-Auth-Mode",
+                "value": "bearer"
+              }
             ],
-            "body": { "mode": "raw", "raw": "{\n  \"identifier\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
             "url": "{{baseUrl}}/auth/login"
           }
         },
         {
           "name": "Me (Bearer only, cookies off)",
-          "protocolProfileBehavior": { "disableCookies": true },
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
-                "exec": ["pm.test('200 OK via Bearer token', () => pm.response.to.have.status(200));"]
+                "exec": [
+                  "pm.test('200 OK via Bearer token', () => pm.response.to.have.status(200));"
+                ]
               }
             }
           ],
           "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "url": "{{baseUrl}}/auth/me"
           }
@@ -256,28 +352,290 @@
               "listen": "test",
               "script": {
                 "type": "text/javascript",
-                "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"]
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));"
+                ]
               }
             }
           ],
-          "request": { "method": "POST", "url": "{{baseUrl}}/auth/logout-all" }
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/logout-all"
+          }
         },
         {
           "name": "Me (Bearer) after logout-all → 401",
-          "protocolProfileBehavior": { "disableCookies": true },
+          "protocolProfileBehavior": {
+            "disableCookies": true
+          },
           "event": [
             {
               "listen": "test",
               "script": {
                 "type": "text/javascript",
-                "exec": ["pm.test('401 — old token revoked', () => pm.response.to.have.status(401));"]
+                "exec": [
+                  "pm.test('401 — old token revoked', () => pm.response.to.have.status(401));"
+                ]
               }
             }
           ],
           "request": {
-            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            },
             "method": "GET",
             "url": "{{baseUrl}}/auth/me"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Chat",
+      "item": [
+        {
+          "name": "Login (for chat)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"identifier\": \"{{username}}\",\n  \"password\": \"{{password}}\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Search users",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const users = pm.response.json().data.users;",
+                  "pm.test(\"found the chatWith user\", () => pm.expect(users.length).to.be.above(0));",
+                  "pm.test(\"no emails in search results\", () => users.forEach((u) => pm.expect(u).to.not.have.property(\"email\")));",
+                  "if (users[0]) pm.collectionVariables.set(\"otherUserId\", users[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/users/search?q={{chatWith}}"
+          }
+        },
+        {
+          "name": "Open direct chat",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const conv = pm.response.json().data.conversation;",
+                  "pm.test(\"direct conversation\", () => pm.expect(conv.type).to.eql(\"direct\"));",
+                  "pm.collectionVariables.set(\"conversationId\", conv.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": \"{{otherUserId}}\"\n}"
+            },
+            "url": "{{baseUrl}}/conversations/direct"
+          }
+        },
+        {
+          "name": "Send message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"201 Created\", () => pm.response.to.have.status(201));",
+                  "pm.test(\"text saved\", () => pm.expect(pm.response.json().data.message.text).to.eql(\"Hello from Postman 👋\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Hello from Postman 👋\",\n  \"clientId\": \"postman-{{$timestamp}}\"\n}"
+            },
+            "url": "{{baseUrl}}/conversations/{{conversationId}}/messages"
+          }
+        },
+        {
+          "name": "Send blank → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"   \"\n}"
+            },
+            "url": "{{baseUrl}}/conversations/{{conversationId}}/messages"
+          }
+        },
+        {
+          "name": "List conversations",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const list = pm.response.json().data.conversations;",
+                  "pm.test(\"newest chat first, with preview\", () => pm.expect(list[0].lastMessage.preview).to.eql(\"Hello from Postman 👋\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/conversations"
+          }
+        },
+        {
+          "name": "List messages (newest 30)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));",
+                  "const d = pm.response.json().data;",
+                  "pm.test(\"oldest → newest, ends with my message\", () => pm.expect(d.messages.at(-1).text).to.eql(\"Hello from Postman 👋\"));",
+                  "pm.test(\"has pagination info\", () => { pm.expect(d).to.have.property(\"hasMore\"); pm.expect(d).to.have.property(\"nextCursor\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/conversations/{{conversationId}}/messages?limit=30"
+          }
+        },
+        {
+          "name": "Mark as read",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"200 OK\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": "{{baseUrl}}/conversations/{{conversationId}}/read"
+          }
+        },
+        {
+          "name": "Invalid conversation id → 400",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"400 Bad Request\", () => pm.response.to.have.status(400));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/conversations/not-an-id"
+          }
+        },
+        {
+          "name": "Unknown conversation → 404",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"404 Not Found\", () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/conversations/000000000000000000000000"
           }
         }
       ]

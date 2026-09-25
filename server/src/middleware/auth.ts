@@ -14,10 +14,9 @@ function extractToken(req: Request): string | null {
   return null;
 }
 
-export const requireAuth: RequestHandler = async (req, _res, next) => {
-  const token = extractToken(req);
-  if (!token) throw new AppError(401, 'Not authenticated');
-
+// Shared by REST (requireAuth) and Socket.io: token -> active user, or throws 401/403.
+// A fresh DB read each time means bans, role changes and logout-all apply immediately.
+export async function authenticateToken(token: string): Promise<UserDoc> {
   let payload;
   try {
     payload = verifyToken(token);
@@ -25,7 +24,6 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
     throw new AppError(401, 'Session expired or invalid — please log in again');
   }
 
-  // A fresh DB read each request means bans, role changes and logout-all apply immediately.
   const user = await User.findById(payload.sub).select('+tokenVersion');
   if (!user || user.tokenVersion !== payload.tv) {
     throw new AppError(401, 'Session expired or invalid — please log in again');
@@ -33,8 +31,14 @@ export const requireAuth: RequestHandler = async (req, _res, next) => {
   if (user.status !== 'active') {
     throw new AppError(403, `Your account is ${user.status}`);
   }
+  return user;
+}
 
-  req.user = user;
+export const requireAuth: RequestHandler = async (req, _res, next) => {
+  const token = extractToken(req);
+  if (!token) throw new AppError(401, 'Not authenticated');
+
+  req.user = await authenticateToken(token);
   next();
 };
 

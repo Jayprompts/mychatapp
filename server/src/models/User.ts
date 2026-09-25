@@ -59,3 +59,19 @@ export function toPublicUser(user: UserDoc) {
 }
 
 export type PublicUser = ReturnType<typeof toPublicUser>;
+
+// Public card for OTHER users (chat lists, search, members) — no email, no account details.
+export const USER_SUMMARY_FIELDS = 'username displayName avatarUrl lastSeenAt';
+
+export function toUserSummary(user: UserDoc, online: boolean) {
+  return {
+    id: user._id.toString(),
+    username: user.username,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl ?? null,
+    lastSeenAt: user.lastSeenAt ?? null,
+    online,
+  };
+}
+
+export type UserSummary = ReturnType<typeof toUserSummary>;

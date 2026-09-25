@@ -2,9 +2,11 @@ import http from 'node:http';
 import { app } from './app.js';
 import { env } from './config/env.js';
 import { connectDB, disconnectDB } from './config/db.js';
+import { initSocket } from './sockets/index.js';
 
-// A raw HTTP server (instead of app.listen) so Socket.io can share it in Phase 3
+// A raw HTTP server (instead of app.listen) so Socket.io can share it
 const server = http.createServer(app);
+initSocket(server);
 
 async function start() {
   try {

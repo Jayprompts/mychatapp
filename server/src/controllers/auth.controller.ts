@@ -4,6 +4,7 @@ import { AppError } from '../utils/AppError.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
 import { AUTH_COOKIE, authCookieOptions, clearCookieOptions, signToken } from '../utils/jwt.js';
 import { authUser } from '../middleware/auth.js';
+import { disconnectUser } from '../sockets/index.js';
 import type { LoginInput, RegisterInput } from '../validators/auth.schemas.js';
 
 // Sets the auth cookie. The raw token is only returned in the body when the client
@@ -66,7 +67,9 @@ export const logout: RequestHandler = (_req, res) => {
 
 // Invalidates every token ever issued to this user (all devices), then clears this device's cookie.
 export const logoutAll: RequestHandler = async (req, res) => {
-  await User.updateOne({ _id: authUser(req)._id }, { $inc: { tokenVersion: 1 } });
+  const userId = authUser(req)._id;
+  await User.updateOne({ _id: userId }, { $inc: { tokenVersion: 1 } });
+  disconnectUser(userId.toString()); // live sockets on other devices drop immediately
   res.clearCookie(AUTH_COOKIE, clearCookieOptions);
   res.json({ success: true, data: { message: 'Logged out on all devices' } });
 };

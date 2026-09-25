@@ -55,6 +55,10 @@ body {
   background: linear-gradient(135deg, #00B2FF 0%, #B620E0 100%);
 }
 
+.gradient-message {
+  background: linear-gradient(135deg, #0866FF 0%, #7B2FBE 100%);
+}
+
 .gradient-brand-text {
   background: linear-gradient(135deg, #00B2FF 0%, #B620E0 100%);
   -webkit-background-clip: text;

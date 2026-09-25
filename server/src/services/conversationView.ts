@@ -1,0 +1,64 @@
+import type { ConversationDoc } from '../models/Conversation.js';
+import { USER_SUMMARY_FIELDS, User, toUserSummary, type UserDoc, type UserSummary } from '../models/User.js';
+import { isOnline } from './presence.js';
+
+// Shapes conversations for one viewer: names the direct chat after the other person,
+// attaches member profiles + online state, and exposes only the viewer's own unread count.
+
+const deletedUser = (id: string): UserSummary => ({
+  id,
+  username: 'deleted',
+  displayName: 'Deleted user',
+  avatarUrl: null,
+  lastSeenAt: null,
+  online: false,
+});
+
+function toConversationView(c: ConversationDoc, viewerId: string, users: Map<string, UserDoc>) {
+  const members = c.members.map((m) => {
+    const id = m.user.toString();
+    const user = users.get(id);
+    return {
+      user: user ? toUserSummary(user, isOnline(id)) : deletedUser(id),
+      role: m.role,
+      lastReadAt: m.lastReadAt,
+    };
+  });
+
+  const me = c.members.find((m) => m.user.toString() === viewerId);
+  const other = c.type === 'direct' ? members.find((m) => m.user.id !== viewerId) : undefined;
+
+  return {
+    id: c._id.toString(),
+    type: c.type,
+    name: c.type === 'direct' ? (other?.user.displayName ?? 'Unknown user') : (c.name ?? 'Group'),
+    avatarUrl: c.type === 'direct' ? (other?.user.avatarUrl ?? null) : (c.avatarUrl ?? null),
+    members,
+    lastMessage: c.lastMessage
+      ? {
+          id: c.lastMessage.messageId.toString(),
+          senderId: c.lastMessage.sender.toString(),
+          type: c.lastMessage.type,
+          preview: c.lastMessage.preview,
+          createdAt: c.lastMessage.createdAt,
+        }
+      : null,
+    lastMessageAt: c.lastMessageAt,
+    unreadCount: me?.unreadCount ?? 0,
+    createdAt: c.createdAt,
+  };
+}
+
+export type ConversationView = ReturnType<typeof toConversationView>;
+
+export async function buildConversationViews(conversations: ConversationDoc[], viewerId: string) {
+  const ids = [...new Set(conversations.flatMap((c) => c.members.map((m) => m.user.toString())))];
+  const users = await User.find({ _id: { $in: ids } }).select(USER_SUMMARY_FIELDS);
+  const byId = new Map(users.map((u) => [u._id.toString(), u]));
+  return conversations.map((c) => toConversationView(c, viewerId, byId));
+}
+
+export async function buildConversationView(conversation: ConversationDoc, viewerId: string) {
+  const [view] = await buildConversationViews([conversation], viewerId);
+  return view;
+}
