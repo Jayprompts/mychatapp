@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { MessageCircle, Plus, Search } from 'lucide-react';
-import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { FormAlert } from '@/components/ui/FormAlert';
@@ -11,8 +10,10 @@ import { errorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { formatListTime } from '@/lib/time';
 import { useConversations } from '../api';
-import { usePresence, useTypingUserIds } from '../liveState';
+import { useTypingUserIds } from '../liveState';
+import { formatSystemEvent } from '../preview';
 import type { Conversation } from '../types';
+import { ConversationAvatar } from './ConversationAvatar';
 import { NewChatDialog } from './NewChatDialog';
 
 export function ConversationList({ activeId }: { activeId?: string }) {
@@ -95,16 +96,22 @@ export function ConversationList({ activeId }: { activeId?: string }) {
 
 function ConversationRow({ conversation: c, active }: { conversation: Conversation; active: boolean }) {
   const { data: me } = useMe();
-  const other = c.type === 'direct' ? c.members.find((m) => m.user.id !== me?.id)?.user : undefined;
-  const presence = usePresence(other);
   const typing = useTypingUserIds(c.id).length > 0;
   const unread = c.unreadCount > 0;
 
-  const preview = typing
-    ? 'typing…'
-    : c.lastMessage
-      ? `${c.lastMessage.senderId === me?.id ? 'You: ' : ''}${c.lastMessage.preview}`
-      : 'Say hello 👋';
+  // "You: …" for my messages; "Ana: …" for others in groups; system lines as they are.
+  const last = c.lastMessage;
+  const sender = last && c.members.find((m) => m.user.id === last.senderId)?.user;
+  const prefix =
+    !last || last.type === 'system'
+      ? ''
+      : last.senderId === me?.id
+        ? 'You: '
+        : c.type === 'group' && sender
+          ? `${sender.displayName.split(' ')[0]}: `
+          : '';
+  const lastText = last?.system && me ? formatSystemEvent(last.system, me.id) : last?.preview;
+  const preview = typing ? 'typing…' : last ? `${prefix}${lastText}` : 'Say hello 👋';
 
   return (
     <li>
@@ -116,7 +123,7 @@ function ConversationRow({ conversation: c, active }: { conversation: Conversati
           active ? 'bg-primary/8' : 'hover:bg-bg',
         )}
       >
-        <Avatar name={c.name} src={c.avatarUrl} size={52} status={presence.online ? 'online' : undefined} />
+        <ConversationAvatar conversation={c} myId={me?.id} size={52} />
         <div className="min-w-0 flex-1">
           <div className="flex items-baseline justify-between gap-2">
             <span className={cn('truncate text-[15px] text-text-primary', unread ? 'font-semibold' : 'font-medium')}>

@@ -12,6 +12,8 @@ export interface ServerToClientEvents {
   'conversation:read': (payload: ReadPayload) => void;
   'presence:update': (payload: PresencePayload) => void;
   typing: (payload: TypingPayload) => void;
+  'conversation:updated': (payload: { conversationId: string }) => void; // refetch its details
+  'conversation:removed': (payload: { conversationId: string }) => void; // you're no longer a member
 }
 
 export interface ClientToServerEvents {

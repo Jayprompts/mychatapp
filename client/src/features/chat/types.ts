@@ -20,14 +20,34 @@ export type Conversation = {
   type: 'direct' | 'group';
   name: string;
   avatarUrl: string | null;
+  description: string; // groups only
+  myRole: 'owner' | 'admin' | 'member';
   members: ConversationMember[];
-  lastMessage: { id: string; senderId: string; type: string; preview: string; createdAt: string } | null;
+  lastMessage: {
+    id: string;
+    senderId: string;
+    type: string;
+    preview: string;
+    createdAt: string;
+    system?: SystemEvent | null;
+  } | null;
   lastMessageAt: string;
   unreadCount: number;
   createdAt: string;
 };
 
-export type MessageType = 'text' | 'voice' | 'image';
+export type MessageType = 'text' | 'voice' | 'image' | 'system';
+
+export type PersonRef = { id: string; name: string };
+
+/** Group events shown as centered lines: "Jay added Ana". */
+export type SystemEvent = {
+  kind: 'created' | 'added' | 'removed' | 'left' | 'renamed' | 'role';
+  actor: PersonRef;
+  targets: PersonRef[];
+  name: string | null;
+  role: string | null;
+};
 
 export type MessageMedia = {
   url: string; // /api/media/:messageId — only works for conversation members
@@ -46,6 +66,7 @@ export type Message = {
   type: MessageType;
   text: string; // message text, or photo caption
   media: MessageMedia | null;
+  system?: SystemEvent | null;
   clientId: string | null;
   createdAt: string;
   editedAt: string | null;
@@ -68,6 +89,8 @@ export interface ServerToClientEvents {
   'conversation:read': (payload: ReadPayload) => void;
   'presence:update': (payload: PresencePayload) => void;
   typing: (payload: TypingPayload) => void;
+  'conversation:updated': (payload: { conversationId: string }) => void;
+  'conversation:removed': (payload: { conversationId: string }) => void;
 }
 
 export interface ClientToServerEvents {

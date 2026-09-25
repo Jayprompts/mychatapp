@@ -61,11 +61,12 @@ export function applyMessageToList(qc: QueryClient, message: Message, myId: stri
             type: message.type,
             preview: previewFor(message.type, message.text),
             createdAt: message.createdAt,
+            system: message.system ?? null,
           }
         : current.lastMessage,
       lastMessageAt: isNewer ? message.createdAt : current.lastMessageAt,
       unreadCount:
-        message.senderId !== myId && !alreadyCounted && message.status === undefined
+        message.senderId !== myId && message.type !== 'system' && !alreadyCounted && message.status === undefined
           ? current.unreadCount + 1
           : current.unreadCount,
     };
@@ -97,4 +98,11 @@ export function upsertConversation(qc: QueryClient, conversation: Conversation) 
       ? old.map((c) => (c.id === conversation.id ? conversation : c))
       : [conversation, ...old];
   });
+}
+
+/** I left or was removed: drop the conversation and its history from this device. */
+export function removeConversation(qc: QueryClient, conversationId: string) {
+  qc.setQueryData<Conversation[]>(chatKeys.conversations, (old) => old?.filter((c) => c.id !== conversationId));
+  qc.removeQueries({ queryKey: chatKeys.messages(conversationId) });
+  qc.removeQueries({ queryKey: ['sharedMedia', conversationId] });
 }

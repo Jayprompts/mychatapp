@@ -33,6 +33,8 @@ function toConversationView(c: ConversationDoc, viewerId: string, users: Map<str
     type: c.type,
     name: c.type === 'direct' ? (other?.user.displayName ?? 'Unknown user') : (c.name ?? 'Group'),
     avatarUrl: c.type === 'direct' ? (other?.user.avatarUrl ?? null) : (c.avatarUrl ?? null),
+    description: c.type === 'group' ? (c.description ?? '') : '',
+    myRole: me?.role ?? 'member',
     members,
     lastMessage: c.lastMessage
       ? {
@@ -41,6 +43,7 @@ function toConversationView(c: ConversationDoc, viewerId: string, users: Map<str
           type: c.lastMessage.type,
           preview: c.lastMessage.preview,
           createdAt: c.lastMessage.createdAt,
+          system: c.lastMessage.system ?? null,
         }
       : null,
     lastMessageAt: c.lastMessageAt,

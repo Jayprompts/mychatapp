@@ -2,10 +2,18 @@ import { Router } from 'express';
 import { rateLimit } from 'express-rate-limit';
 import multer from 'multer';
 import * as chat from '../controllers/conversations.controller.js';
+import * as groups from '../controllers/groups.controller.js';
 import { requireAuth } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { MEDIA_LIMITS } from '../services/media.js';
-import { openDirectSchema, sendMessageSchema } from '../validators/chat.schemas.js';
+import {
+  addMembersSchema,
+  createGroupSchema,
+  openDirectSchema,
+  sendMessageSchema,
+  setRoleSchema,
+  updateGroupSchema,
+} from '../validators/chat.schemas.js';
 
 // Anti-spam: 30 messages per 10 seconds per user (normal chatting never gets close).
 const sendLimiter = rateLimit({
@@ -31,7 +39,13 @@ router.use(requireAuth);
 
 router.get('/', chat.listConversations);
 router.post('/direct', validate(openDirectSchema), chat.openDirectConversation);
+router.post('/group', validate(createGroupSchema), groups.createGroup);
 router.get('/:id', chat.getConversation);
+router.patch('/:id', validate(updateGroupSchema), groups.updateGroup);
+router.get('/:id/media', chat.listSharedMedia);
+router.post('/:id/members', validate(addMembersSchema), groups.addMembers);
+router.delete('/:id/members/:userId', groups.removeMember);
+router.patch('/:id/members/:userId', validate(setRoleSchema), groups.setMemberRole);
 router.get('/:id/messages', chat.listMessages);
 router.post('/:id/messages', sendLimiter, validate(sendMessageSchema), chat.sendMessage);
 router.post('/:id/media', sendLimiter, upload.single('file'), chat.sendMediaMessage);

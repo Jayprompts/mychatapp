@@ -5,6 +5,7 @@ import { Lightbox } from '@/components/ui/Lightbox';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { formatDayLabel, isSameDay } from '@/lib/time';
 import { useMessages, useSendMedia, useSendMessage } from '../api';
+import { formatSystemEvent } from '../preview';
 import type { Conversation, Message } from '../types';
 import { MessageBubble, type BubblePosition } from './MessageBubble';
 import { TypingBubble } from './TypingBubble';
@@ -45,15 +46,15 @@ export function MessageList({ conversation, myId, typingUserIds }: Props) {
   const members = useMemo(() => new Map(conversation.members.map((m) => [m.user.id, m])), [conversation.members]);
   const isGroup = conversation.type === 'group';
 
-  // "Seen" = every other member has read up to my latest confirmed message.
-  const lastMine = [...messages].reverse().find((m) => m.senderId === myId && !m.status);
-  const receipt: 'sent' | 'seen' | undefined = lastMine
-    ? conversation.members
-        .filter((m) => m.user.id !== myId)
-        .every((m) => new Date(m.lastReadAt).getTime() >= new Date(lastMine.createdAt).getTime())
-      ? 'seen'
-      : 'sent'
-    : undefined;
+  // Read receipt on my latest message: "Seen" once every other member has read it,
+  // "Seen by N" while only some have (groups), otherwise "Sent".
+  const lastMine = [...messages].reverse().find((m) => m.senderId === myId && !m.status && m.type !== 'system');
+  let receipt: 'sent' | 'seen' | number | undefined;
+  if (lastMine) {
+    const others = conversation.members.filter((m) => m.user.id !== myId);
+    const seenBy = others.filter((m) => new Date(m.lastReadAt).getTime() >= new Date(lastMine.createdAt).getTime()).length;
+    receipt = others.length > 0 && seenBy === others.length ? 'seen' : seenBy > 0 ? seenBy : 'sent';
+  }
 
   // ── Scroll behaviour ─────────────────────────────────────────────
   // distance from the bottom of the content, updated on every scroll
@@ -127,6 +128,8 @@ export function MessageList({ conversation, myId, typingUserIds }: Props) {
     const joins = (a?: Message, b?: Message) =>
       !!a &&
       !!b &&
+      a.type !== 'system' &&
+      b.type !== 'system' &&
       a.senderId === b.senderId &&
       isSameDay(a.createdAt, b.createdAt) &&
       Math.abs(new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) < GROUP_GAP_MS;
@@ -154,6 +157,11 @@ export function MessageList({ conversation, myId, typingUserIds }: Props) {
         messages.map((m, i) => (
           <Fragment key={m.clientId ?? m.id}>
             {(i === 0 || !isSameDay(messages[i - 1].createdAt, m.createdAt)) && <DaySeparator iso={m.createdAt} />}
+            {m.type === 'system' ? (
+              <p className="my-3 px-6 text-center text-xs text-text-secondary">
+                {m.system ? formatSystemEvent(m.system, myId) : m.text}
+              </p>
+            ) : (
             <MessageBubble
               message={m}
               mine={m.senderId === myId}
@@ -164,6 +172,7 @@ export function MessageList({ conversation, myId, typingUserIds }: Props) {
               onRetry={retry}
               onOpenImage={(img) => setLightboxAt(photos.findIndex((p) => p.id === img.id))}
             />
+            )}
           </Fragment>
         ))
       )}

@@ -1,7 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router';
-import { ArrowLeft, MessageCircleOff } from 'lucide-react';
-import { Avatar } from '@/components/ui/Avatar';
+import { ArrowLeft, Info, MessageCircleOff } from 'lucide-react';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { buttonClasses } from '@/components/ui/buttonClasses';
@@ -11,7 +10,9 @@ import { formatLastSeen } from '@/lib/time';
 import { useConversation, useMarkRead } from '../api';
 import { usePresence, useTypingUserIds } from '../liveState';
 import type { Conversation } from '../types';
+import { ChatInfoPanel } from './ChatInfoPanel';
 import { Composer } from './Composer';
+import { ConversationAvatar } from './ConversationAvatar';
 import { MessageList } from './MessageList';
 
 export function ChatView({ conversationId }: { conversationId: string }) {
@@ -25,7 +26,7 @@ export function ChatView({ conversationId }: { conversationId: string }) {
         <EmptyState
           icon={MessageCircleOff}
           title="Conversation not found"
-          description="It may have been deleted, or you're not a member."
+          description="It may have been deleted, or you're no longer a member."
           action={
             <Link to="/chats" className={buttonClasses({ variant: 'secondary' })}>
               Back to chats
@@ -54,45 +55,97 @@ function ChatViewLoaded({ conversation, myId }: { conversation: Conversation; my
     return () => document.removeEventListener('visibilitychange', markIfVisible);
   }, [conversation.unreadCount, marking, markAsRead]);
 
+  const [infoOpen, setInfoOpen] = useState(false);
+
   return (
-    <div className="flex min-h-0 flex-1 flex-col bg-card">
-      <ChatHeader conversation={conversation} myId={myId} typing={typingUserIds.length > 0} />
-      <MessageList conversation={conversation} myId={myId} typingUserIds={typingUserIds} />
-      <Composer conversationId={conversation.id} />
+    <div className="relative flex min-h-0 flex-1">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-card">
+        <ChatHeader
+          conversation={conversation}
+          myId={myId}
+          typingUserIds={typingUserIds}
+          infoOpen={infoOpen}
+          onToggleInfo={() => setInfoOpen((o) => !o)}
+        />
+        <MessageList conversation={conversation} myId={myId} typingUserIds={typingUserIds} />
+        <Composer conversationId={conversation.id} />
+      </div>
+
+      {/* Chat info: side column on large screens, full-screen sheet below that */}
+      {infoOpen && (
+        <div className="absolute inset-0 z-20 flex flex-col bg-card lg:static lg:w-80 lg:shrink-0 lg:border-l lg:border-border">
+          <ChatInfoPanel conversation={conversation} myId={myId} onClose={() => setInfoOpen(false)} />
+        </div>
+      )}
     </div>
   );
 }
 
-function ChatHeader({ conversation, myId, typing }: { conversation: Conversation; myId: string; typing: boolean }) {
-  const other = conversation.type === 'direct' ? conversation.members.find((m) => m.user.id !== myId)?.user : undefined;
+function typingText(names: string[]): string {
+  if (names.length === 1) return `${names[0]} is typing…`;
+  if (names.length === 2) return `${names[0]} and ${names[1]} are typing…`;
+  return `${names.length} people are typing…`;
+}
+
+type HeaderProps = {
+  conversation: Conversation;
+  myId: string;
+  typingUserIds: string[];
+  infoOpen: boolean;
+  onToggleInfo: () => void;
+};
+
+function ChatHeader({ conversation, myId, typingUserIds, infoOpen, onToggleInfo }: HeaderProps) {
+  const isGroup = conversation.type === 'group';
+  const other = !isGroup ? conversation.members.find((m) => m.user.id !== myId)?.user : undefined;
   const presence = usePresence(other);
 
-  const subtitle =
-    conversation.type === 'group'
+  const typingNames = typingUserIds.map(
+    (id) => conversation.members.find((m) => m.user.id === id)?.user.displayName.split(' ')[0] ?? 'Someone',
+  );
+  const subtitle = typingNames.length
+    ? isGroup
+      ? typingText(typingNames)
+      : 'typing…'
+    : isGroup
       ? `${conversation.members.length} members`
       : formatLastSeen(presence.online, presence.lastSeenAt);
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-3 border-b border-border bg-card px-2 sm:px-4">
+    <header className="flex h-16 shrink-0 items-center gap-1 border-b border-border bg-card px-2 sm:px-4">
       <Link
         to="/chats"
         aria-label="Back to chats"
-        className="flex size-10 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/8 md:hidden"
+        className="flex size-10 shrink-0 items-center justify-center rounded-full text-primary transition-colors hover:bg-primary/8 md:hidden"
       >
         <ArrowLeft size={22} />
       </Link>
-      <Avatar
-        name={conversation.name}
-        src={conversation.avatarUrl}
-        size={40}
-        status={presence.online ? 'online' : undefined}
-      />
-      <div className="min-w-0">
-        <h2 className="truncate text-base font-semibold text-text-primary">{conversation.name}</h2>
-        <p className={cn('truncate text-xs', typing ? 'font-medium text-primary' : 'text-text-secondary')}>
-          {typing ? 'typing…' : subtitle}
-        </p>
-      </div>
+      {/* Tapping the name/avatar opens chat info (per the design) */}
+      <button
+        type="button"
+        onClick={onToggleInfo}
+        className="flex min-w-0 flex-1 items-center gap-3 rounded-lg px-1 py-1 text-left transition-colors hover:bg-bg focus-visible:outline-2 focus-visible:outline-primary"
+      >
+        <ConversationAvatar conversation={conversation} myId={myId} size={40} />
+        <span className="min-w-0">
+          <span className="block truncate text-base font-semibold text-text-primary">{conversation.name}</span>
+          <span className={cn('block truncate text-xs', typingNames.length ? 'font-medium text-primary' : 'text-text-secondary')}>
+            {subtitle}
+          </span>
+        </span>
+      </button>
+      <button
+        type="button"
+        onClick={onToggleInfo}
+        aria-label="Chat info"
+        aria-pressed={infoOpen}
+        className={cn(
+          'flex size-10 shrink-0 items-center justify-center rounded-full transition-colors',
+          infoOpen ? 'bg-primary/10 text-primary' : 'text-primary hover:bg-primary/8',
+        )}
+      >
+        <Info size={21} />
+      </button>
     </header>
   );
 }

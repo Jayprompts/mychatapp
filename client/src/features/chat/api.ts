@@ -1,9 +1,17 @@
 import { useCallback } from 'react';
+import { useNavigate } from 'react-router';
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, upload } from '@/lib/api';
 import { getSocket } from '@/lib/socket';
 import { useMe } from '@/features/auth/api';
-import { applyMessageToList, applyRead, chatKeys, upsertConversation, upsertMessage } from './cache';
+import {
+  applyMessageToList,
+  applyRead,
+  chatKeys,
+  removeConversation,
+  upsertConversation,
+  upsertMessage,
+} from './cache';
 import type { Conversation, Message, MessagesPage, UserSummary } from './types';
 
 export function useConversations() {
@@ -195,4 +203,76 @@ export function useSendMedia(conversationId: string) {
     },
     [qc, me, conversationId],
   );
+}
+
+// ── Groups ─────────────────────────────────────────────────
+
+export function useCreateGroup() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name: string; description?: string; memberIds: string[] }) =>
+      api<{ conversation: Conversation }>('/conversations/group', { method: 'POST', body: input }).then((d) => d.conversation),
+    onSuccess: (conversation) => upsertConversation(qc, conversation),
+  });
+}
+
+export function useUpdateGroup(conversationId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { name?: string; description?: string }) =>
+      api<{ conversation: Conversation }>(`/conversations/${conversationId}`, { method: 'PATCH', body: input }).then(
+        (d) => d.conversation,
+      ),
+    onSuccess: (conversation) => upsertConversation(qc, conversation),
+  });
+}
+
+export function useAddMembers(conversationId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userIds: string[]) =>
+      api<{ conversation: Conversation }>(`/conversations/${conversationId}/members`, {
+        method: 'POST',
+        body: { userIds },
+      }).then((d) => d.conversation),
+    onSuccess: (conversation) => upsertConversation(qc, conversation),
+  });
+}
+
+/** Remove someone — or pass your own id to leave the group (then goes back to the chat list). */
+export function useRemoveMember(conversationId: string) {
+  const qc = useQueryClient();
+  const { data: me } = useMe();
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: (userId: string) =>
+      api<{ deleted: boolean }>(`/conversations/${conversationId}/members/${userId}`, { method: 'DELETE' }),
+    // Hook-level callbacks still run after the chat screen unmounts (the "you left" socket event can
+    // remove the conversation before this request even finishes).
+    onSuccess: (_data, userId) => {
+      if (userId !== me?.id) return;
+      navigate('/chats', { replace: true });
+      removeConversation(qc, conversationId);
+    },
+  });
+}
+
+export function useSetMemberRole(conversationId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ userId, role }: { userId: string; role: 'admin' | 'member' }) =>
+      api<{ conversation: Conversation }>(`/conversations/${conversationId}/members/${userId}`, {
+        method: 'PATCH',
+        body: { role },
+      }).then((d) => d.conversation),
+    onSuccess: (conversation) => upsertConversation(qc, conversation),
+  });
+}
+
+export function useSharedMedia(conversationId: string, enabled = true) {
+  return useQuery({
+    queryKey: ['sharedMedia', conversationId],
+    queryFn: () => api<{ messages: Message[] }>(`/conversations/${conversationId}/media`).then((d) => d.messages),
+    enabled,
+  });
 }

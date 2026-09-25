@@ -14,7 +14,7 @@ type MessageBubbleProps = {
   sender?: UserSummary;
   showSenderName: boolean; // group chats
   position: BubblePosition; // place within a run of consecutive messages from the same person
-  receipt?: 'sent' | 'seen'; // only on my latest message
+  receipt?: 'sent' | 'seen' | number; // only on my latest message; a number = "Seen by N" (groups)
   onRetry?: (message: Message) => void;
   onOpenImage?: (message: Message) => void;
 };
@@ -48,7 +48,7 @@ export function MessageBubble({
       )}
 
       <div className={cn('flex max-w-[75%] flex-col sm:max-w-[65%]', mine ? 'items-end' : 'items-start')}>
-        {showSenderName && position.first && sender && (
+        {showSenderName && !mine && position.first && sender && (
           <span className="mb-1 ml-3 text-xs font-medium text-text-secondary">{sender.displayName}</span>
         )}
 
@@ -100,6 +100,11 @@ export function MessageBubble({
                 {receipt === 'seen' && (
                   <span className="flex items-center gap-0.5 text-primary">
                     · <CheckCheck size={13} aria-hidden /> Seen
+                  </span>
+                )}
+                {typeof receipt === 'number' && (
+                  <span className="flex items-center gap-0.5 text-primary">
+                    · <CheckCheck size={13} aria-hidden /> Seen by {receipt}
                   </span>
                 )}
                 {receipt === 'sent' && (

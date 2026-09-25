@@ -23,6 +23,7 @@ const lastMessageSchema = new Schema(
     type: { type: String, required: true },
     preview: { type: String, default: '' },
     createdAt: { type: Date, required: true },
+    system: { type: Schema.Types.Mixed, default: null }, // group event details, so the list can say "You"
   },
   { _id: false },
 );
@@ -33,6 +34,7 @@ const conversationSchema = new Schema(
     // "<smallerUserId>:<largerUserId>" — guarantees one 1-on-1 conversation per pair of users
     directKey: { type: String },
     name: { type: String, trim: true, maxlength: 80 }, // groups only
+    description: { type: String, trim: true, maxlength: 300, default: '' }, // groups only
     avatarUrl: { type: String, default: null }, // groups only
     createdBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     members: { type: [memberSchema], default: [] },
@@ -48,6 +50,8 @@ conversationSchema.index({ 'members.user': 1, lastMessageAt: -1 }); // "my chats
 export type ConversationDoc = HydratedDocument<InferSchemaType<typeof conversationSchema>>;
 
 export const Conversation = model('Conversation', conversationSchema);
+
+export const MAX_GROUP_MEMBERS = 100;
 
 export function directKeyFor(userA: string, userB: string): string {
   return [userA, userB].sort().join(':');

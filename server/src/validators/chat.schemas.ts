@@ -42,3 +42,30 @@ export const userSearchQuerySchema = z.object({
 
 export type OpenDirectInput = z.infer<typeof openDirectSchema>;
 export type SendMessageInput = z.infer<typeof sendMessageSchema>;
+
+const groupName = z.string().trim().min(1, 'Give the group a name').max(80, 'Group name is too long (max 80)');
+const groupDescription = z.string().trim().max(300, 'Description is too long (max 300)');
+const userIds = z
+  .array(objectIdSchema)
+  .min(1, 'Pick at least one person')
+  .max(99, 'Too many people at once')
+  .transform((ids) => [...new Set(ids)]);
+
+export const createGroupSchema = z.object({
+  name: groupName,
+  description: groupDescription.optional(),
+  memberIds: userIds,
+});
+
+export const updateGroupSchema = z
+  .object({ name: groupName.optional(), description: groupDescription.optional() })
+  .refine((d) => d.name !== undefined || d.description !== undefined, 'Nothing to update');
+
+export const addMembersSchema = z.object({ userIds });
+
+export const setRoleSchema = z.object({ role: z.enum(['admin', 'member']) });
+
+export type CreateGroupInput = z.infer<typeof createGroupSchema>;
+export type UpdateGroupInput = z.infer<typeof updateGroupSchema>;
+export type AddMembersInput = z.infer<typeof addMembersSchema>;
+export type SetRoleInput = z.infer<typeof setRoleSchema>;

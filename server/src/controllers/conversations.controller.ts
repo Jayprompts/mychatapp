@@ -1,31 +1,20 @@
 import type { RequestHandler } from 'express';
 import { z } from 'zod';
-import { Conversation, directKeyFor, type ConversationDoc } from '../models/Conversation.js';
-import { Message, previewFor, toPublicMessage, type MessageDoc } from '../models/Message.js';
+import { Conversation, directKeyFor } from '../models/Conversation.js';
+import { Message, toPublicMessage, type MessageDoc } from '../models/Message.js';
 import { User } from '../models/User.js';
 import { authUser } from '../middleware/auth.js';
 import { buildConversationView, buildConversationViews } from '../services/conversationView.js';
 import { MEDIA_LIMITS, deleteMedia, storeImage, storeVoice, type StoredMedia } from '../services/media.js';
 import { emitToUsers } from '../sockets/index.js';
+import { findMemberConversation, memberIds, publishNewMessage } from '../services/conversations.js';
 import { AppError } from '../utils/AppError.js';
-import { parseObjectId } from '../utils/objectId.js';
 import {
   mediaMessageSchema,
   messagesQuerySchema,
   type OpenDirectInput,
   type SendMessageInput,
 } from '../validators/chat.schemas.js';
-
-const memberIds = (c: ConversationDoc) => c.members.map((m) => m.user.toString());
-
-// Loads a conversation only if the user is a member. Non-members get 404 (not 403),
-// so the API never confirms that someone else's conversation exists.
-async function findMemberConversation(conversationId: unknown, userId: string): Promise<ConversationDoc> {
-  const id = parseObjectId(conversationId, 'conversation id');
-  const conversation = await Conversation.findOne({ _id: id, 'members.user': userId });
-  if (!conversation) throw new AppError(404, 'Conversation not found');
-  return conversation;
-}
 
 // GET /api/conversations — my chats, newest activity first.
 // Direct chats someone opened but never messaged only show up for the person who opened them.
@@ -96,40 +85,6 @@ export const listMessages: RequestHandler = async (req, res) => {
     data: { messages, hasMore, nextCursor: hasMore ? (messages[0]?.id ?? null) : null },
   });
 };
-
-// After ANY new message (text, voice, photo): update the chat list preview, unread counts and
-// "sender has read everything" in one atomic write, then push it live to every member.
-async function publishNewMessage(conversation: ConversationDoc, message: MessageDoc) {
-  await Conversation.updateOne(
-    { _id: conversation._id },
-    {
-      $set: {
-        lastMessage: {
-          messageId: message._id,
-          sender: message.sender,
-          type: message.type,
-          preview: previewFor(message.type, message.text),
-          createdAt: message.createdAt,
-        },
-        lastMessageAt: message.createdAt,
-        'members.$[me].lastReadAt': message.createdAt,
-        'members.$[me].unreadCount': 0,
-      },
-      $inc: { 'members.$[other].unreadCount': 1 },
-    },
-    { arrayFilters: [{ 'me.user': message.sender }, { 'other.user': { $ne: message.sender } }] },
-  );
-
-  const payload = toPublicMessage(message);
-  const everyone = memberIds(conversation);
-  emitToUsers(everyone, 'message:new', { message: payload }); // includes my other tabs/devices
-  emitToUsers(everyone, 'conversation:read', {
-    conversationId: payload.conversationId,
-    userId: message.sender.toString(),
-    lastReadAt: message.createdAt.toISOString(),
-  });
-  return payload;
-}
 
 // Safe retries: if this clientId was already saved (e.g. the response was lost), return that message.
 async function findRetry(senderId: string, clientId: string | undefined) {
@@ -214,4 +169,14 @@ export const markRead: RequestHandler = async (req, res) => {
   });
 
   res.json({ success: true, data: { lastReadAt } });
+};
+
+// GET /api/conversations/:id/media — recent photos, for the "Shared media" grid in chat info.
+export const listSharedMedia: RequestHandler = async (req, res) => {
+  const me = authUser(req)._id.toString();
+  const conversation = await findMemberConversation(req.params.id, me);
+  const photos = await Message.find({ conversation: conversation._id, type: 'image', deletedAt: null })
+    .sort({ _id: -1 })
+    .limit(30);
+  res.json({ success: true, data: { messages: photos.map(toPublicMessage) } });
 };

@@ -2,7 +2,9 @@ import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { getSocket } from '@/lib/socket';
 import { meQueryKey } from '@/features/auth/api';
-import { applyMessageToList, applyRead, chatKeys, upsertMessage } from './cache';
+import { api } from '@/lib/api';
+import { applyMessageToList, applyRead, chatKeys, removeConversation, upsertConversation, upsertMessage } from './cache';
+import type { Conversation } from './types';
 import { presenceStore, resetLiveState, setTyping } from './liveState';
 
 // Connects the socket while logged in and turns server events into cache/store updates.
@@ -32,6 +34,7 @@ export function useChatRealtime(myId: string | undefined) {
     socket.on('message:new', ({ message }) => {
       setTyping(message.conversationId, message.senderId, false);
       upsertMessage(qc, message);
+      if (message.type === 'image') void qc.invalidateQueries({ queryKey: ['sharedMedia', message.conversationId] });
       const known = applyMessageToList(qc, message, myId);
       if (!known) void qc.invalidateQueries({ queryKey: chatKeys.conversations }); // someone started a new chat
     });
@@ -43,6 +46,17 @@ export function useChatRealtime(myId: string | undefined) {
     socket.on('presence:update', ({ userId, online, lastSeenAt }) => {
       presenceStore.set((s) => ({ ...s, [userId]: { online, lastSeenAt } }));
     });
+
+    // Group details changed (name, members, roles): refetch just that conversation.
+    socket.on('conversation:updated', ({ conversationId }) => {
+      void api<{ conversation: Conversation }>(`/conversations/${conversationId}`)
+        .then(({ conversation }) => upsertConversation(qc, conversation))
+        .catch(() => {});
+      void qc.invalidateQueries({ queryKey: ['sharedMedia', conversationId] });
+    });
+
+    // I left or was removed from a group.
+    socket.on('conversation:removed', ({ conversationId }) => removeConversation(qc, conversationId));
 
     socket.on('typing', ({ conversationId, userId, isTyping }) => {
       setTyping(conversationId, userId, isTyping);
