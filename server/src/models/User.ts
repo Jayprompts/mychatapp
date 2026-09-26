@@ -25,6 +25,7 @@ const userSchema = new Schema(
     authProvider: { type: String, enum: AUTH_PROVIDERS, default: 'local' },
     role: { type: String, enum: ROLES, default: 'user', index: true },
     status: { type: String, enum: USER_STATUSES, default: 'active' },
+    statusReason: { type: String, trim: true, maxlength: 200, default: '' }, // shown to them at login when suspended/banned
     emailVerified: { type: Boolean, default: false },
     avatarUrl: { type: String, default: null },
     avatarKey: { type: String, default: null }, // uploaded photo (uploads/avatars/…); OAuth pictures have none

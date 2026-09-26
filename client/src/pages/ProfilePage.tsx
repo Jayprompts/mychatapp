@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
-import { Bookmark, PenLine, Settings, Users } from 'lucide-react';
+import { Bookmark, PenLine, Settings, ShieldCheck, Users } from 'lucide-react';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { buttonClasses } from '@/components/ui/buttonClasses';
 import { useMe } from '@/features/auth/api';
@@ -34,6 +34,11 @@ export function ProfilePage() {
           onAvatarClick={() => setEditingPhoto(true)}
           actions={
             <>
+              {me && me.role !== 'user' && (
+                <Link to="/admin" aria-label="Admin panel" className="flex size-10 items-center justify-center rounded-full border-[1.5px] border-border bg-card text-text-secondary transition-colors hover:text-text-primary">
+                  <ShieldCheck size={18} />
+                </Link>
+              )}
               <Link to="/settings" aria-label="Settings" className="flex size-10 items-center justify-center rounded-full border-[1.5px] border-border bg-card text-text-secondary transition-colors hover:text-text-primary">
                 <Settings size={18} />
               </Link>

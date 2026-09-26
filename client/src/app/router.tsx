@@ -11,6 +11,12 @@ import { PostPage } from '@/pages/PostPage';
 import { ChatsPage } from '@/pages/ChatsPage';
 import { CommunitiesPage } from '@/pages/CommunitiesPage';
 import { InvitePage } from '@/pages/InvitePage';
+import { AdminLayout } from '@/features/admin/components/AdminLayout';
+import { RequireStaff } from '@/features/admin/components/RequireStaff';
+import { AuditPage } from '@/pages/admin/AuditPage';
+import { DashboardPage } from '@/pages/admin/DashboardPage';
+import { RolesPage } from '@/pages/admin/RolesPage';
+import { UsersPage } from '@/pages/admin/UsersPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
 import { NotificationsPage } from '@/pages/NotificationsPage';
 import { EditProfilePage } from '@/pages/EditProfilePage';
@@ -42,6 +48,21 @@ export const router = createBrowserRouter([
       {
         element: <RequireAuth />,
         children: [
+          // The admin panel: its own layout, staff only (the server re-checks every request).
+          {
+            path: '/admin',
+            element: <RequireStaff />,
+            children: [
+              {
+                element: <AdminLayout />,
+                children: [
+                  { index: true, element: <DashboardPage /> },
+                  { path: 'users', element: <UsersPage /> },
+                  { element: <RequireStaff roles={['super_admin']} />, children: [{ path: 'roles', element: <RolesPage /> }, { path: 'audit', element: <AuditPage /> }] },
+                ],
+              },
+            ],
+          },
           {
             element: <AppShell />,
             children: [

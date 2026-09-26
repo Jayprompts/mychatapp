@@ -17,6 +17,7 @@ import commentRoutes from './routes/comments.routes.js';
 import reportRoutes from './routes/reports.routes.js';
 import notificationRoutes from './routes/notifications.routes.js';
 import searchRoutes from './routes/search.routes.js';
+import adminRoutes from './routes/admin.routes.js';
 import { notFound, errorHandler } from './middleware/error.js';
 
 export const app = express();
@@ -61,6 +62,7 @@ app.use('/api/comments', commentRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/search', searchRoutes);
+app.use('/api/admin', adminRoutes);
 
 // ── React app (production) ──────────────────────────
 // One process serves the API, Socket.io and the built client from the same domain.

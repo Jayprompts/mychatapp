@@ -3,7 +3,7 @@ import { User, toPublicUser, type UserDoc } from '../models/User.js';
 import { AppError } from '../utils/AppError.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
 import { AUTH_COOKIE, authCookieOptions, clearCookieOptions, signToken } from '../utils/jwt.js';
-import { authUser } from '../middleware/auth.js';
+import { accountBlockedMessage, authUser } from '../middleware/auth.js';
 import { disconnectUser } from '../sockets/index.js';
 import type { LoginInput, RegisterInput } from '../validators/auth.schemas.js';
 
@@ -51,7 +51,7 @@ export const login: RequestHandler = async (req, res) => {
   // Always run the hash check (even with no user) so response time doesn't reveal which accounts exist.
   const ok = await verifyPassword(password, user?.passwordHash);
   if (!user || !ok) throw new AppError(401, 'Invalid email/username or password');
-  if (user.status !== 'active') throw new AppError(403, `Your account is ${user.status}`);
+  if (user.status !== 'active') throw new AppError(403, accountBlockedMessage(user));
 
   sendAuth(req, res, user, 200);
 };

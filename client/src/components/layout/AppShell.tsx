@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Link, NavLink, Outlet, useLocation, useMatch } from 'react-router';
-import { MessageCircle, Newspaper, User, Users, type LucideIcon } from 'lucide-react';
+import { MessageCircle, Newspaper, ShieldCheck, User, Users, type LucideIcon } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { LiveToaster } from '@/components/ui/LiveToaster';
 import { LogoMark } from '@/components/ui/Logo';
@@ -77,6 +77,11 @@ export function AppShell() {
         <div className="mt-2 flex flex-col items-center gap-1">
           <SearchButton variant="rail" />
           <RailBell />
+          {user && user.role !== 'user' && (
+            <Link to="/admin" aria-label="Admin panel" title="Admin panel" className="flex size-11 items-center justify-center rounded-[14px] text-text-secondary transition-colors hover:bg-bg hover:text-text-primary">
+              <ShieldCheck size={22} strokeWidth={1.8} />
+            </Link>
+          )}
         </div>
 
         {user && (

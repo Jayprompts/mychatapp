@@ -14,6 +14,12 @@ function extractToken(req: Request): string | null {
   return null;
 }
 
+// "Your account is suspended: spamming the Design Guild" — the same words at login and on every request.
+export function accountBlockedMessage(user: UserDoc) {
+  if (user.status === 'deleted') return 'This account has been deleted';
+  return `Your account is ${user.status}${user.statusReason ? `: ${user.statusReason}` : ''}`;
+}
+
 // Shared by REST (requireAuth) and Socket.io: token -> active user, or throws 401/403.
 // A fresh DB read each time means bans, role changes and logout-all apply immediately.
 export async function authenticateToken(token: string): Promise<UserDoc> {
@@ -28,9 +34,7 @@ export async function authenticateToken(token: string): Promise<UserDoc> {
   if (!user || user.tokenVersion !== payload.tv) {
     throw new AppError(401, 'Session expired or invalid — please log in again');
   }
-  if (user.status !== 'active') {
-    throw new AppError(403, `Your account is ${user.status}`);
-  }
+  if (user.status !== 'active') throw new AppError(403, accountBlockedMessage(user));
   return user;
 }
 
@@ -53,6 +57,9 @@ export const requireRole =
     }
     next();
   };
+
+export const STAFF_ROLES: Role[] = ['super_admin', 'content_mod', 'community_mgr'];
+export const isStaff = (role?: Role) => !!role && STAFF_ROLES.includes(role);
 
 // For handlers behind requireAuth: returns req.user with a non-optional type.
 export function authUser(req: Request): UserDoc {
