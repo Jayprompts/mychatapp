@@ -5,7 +5,7 @@
 <h1 align="center">Grove</h1>
 
 <p align="center">
-  <strong>Chat, communities and a blog — in one real-time web app.</strong><br />
+  <strong>Chat, communities and a blog — in one real time web app.</strong><br />
   <a href="https://chat.mypromptspace.cloud">chat.mypromptspace.cloud</a>
 </p>
 
