@@ -30,7 +30,7 @@ export function JoinButton({ community, size = 'sm', onJoined }: { community: Co
           e.preventDefault();
           cancel.mutate(community.id, { onError: fail });
         }}
-        className="border-warning/60 bg-warning/10 text-[#B68A00] hover:bg-warning/15"
+        className="border-warning/60 bg-warning/10 text-warning-ink hover:bg-warning/15"
         title="Tap to cancel your request"
       >
         <Clock size={15} /> Requested

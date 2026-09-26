@@ -150,7 +150,7 @@ function JoinRequests({ community }: { community: CommunityDetail }) {
   const answer = useAnswerRequest(community.id);
   return (
     <section className="border-b border-border bg-warning/5 px-4 pt-3 pb-2">
-      <h3 className="mb-2 flex items-center gap-1.5 text-[11px] font-bold tracking-[0.08em] text-[#B68A00] uppercase">
+      <h3 className="mb-2 flex items-center gap-1.5 text-[11px] font-bold tracking-[0.08em] text-warning-ink uppercase">
         Join requests
         <span className="rounded-full bg-warning px-1.5 text-[10px] text-white">{community.joinRequests.length}</span>
       </h3>

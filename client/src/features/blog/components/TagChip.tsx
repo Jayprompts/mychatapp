@@ -3,12 +3,12 @@ import type { PostTag } from '../types';
 
 const COLORS: Record<PostTag, string> = {
   Tech: 'bg-primary/8 text-primary',
-  Design: 'bg-[#B620E0]/8 text-[#B620E0]',
+  Design: 'bg-accent/10 text-accent',
   Product: 'bg-success/10 text-success',
-  Community: 'bg-warning/12 text-[#B68A00]',
-  Lifestyle: 'bg-[#EC4899]/10 text-[#DB2777]',
+  Community: 'bg-warning/12 text-warning-ink',
+  Lifestyle: 'bg-[#EC4899]/12 text-pink-ink',
   News: 'bg-error/8 text-error',
-  Tutorial: 'bg-[#0F766E]/10 text-[#0F766E]',
+  Tutorial: 'bg-[#14B8A6]/12 text-teal-ink',
   Other: 'bg-text-secondary/10 text-text-secondary',
 };
 

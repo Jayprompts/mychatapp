@@ -118,7 +118,7 @@ export function UsersPage() {
           </thead>
           <tbody>
             {users.map((u) => (
-              <tr key={u.id} className={cn('border-b border-[#ECEEF2] last:border-0 hover:bg-[#FAFBFC]', selected.has(u.id) && 'bg-primary/4')}>
+              <tr key={u.id} className={cn('border-b border-row-line last:border-0 hover:bg-row-hover', selected.has(u.id) && 'bg-primary/4')}>
                 {canAct && (
                   <td className={td}>
                     <input type="checkbox" aria-label={`Select ${u.displayName}`} disabled={!selectable(u)} checked={selected.has(u.id)} onChange={() => toggle(u.id)} />

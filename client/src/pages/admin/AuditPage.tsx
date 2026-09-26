@@ -37,7 +37,7 @@ export function AuditPage() {
           </thead>
           <tbody>
             {(log.data?.entries ?? []).map((e) => (
-              <tr key={e.id} className="border-b border-[#ECEEF2] last:border-0">
+              <tr key={e.id} className="border-b border-row-line last:border-0">
                 <td className={cn(td, 'whitespace-nowrap text-text-secondary')}>{when(e.createdAt)}</td>
                 <td className={cn(td, 'whitespace-nowrap font-semibold')}>{e.actorName}</td>
                 <td className={td}>{describeAudit(e)}</td>

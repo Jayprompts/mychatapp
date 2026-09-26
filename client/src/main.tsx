@@ -6,6 +6,7 @@ import { queryClient } from '@/lib/queryClient';
 import { router } from '@/app/router';
 import { Toaster } from '@/components/ui/Toaster';
 import './index.css';
+import '@/lib/theme'; // applies Light/Dark/System and follows the device
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

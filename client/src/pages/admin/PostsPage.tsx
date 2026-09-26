@@ -98,7 +98,7 @@ export function PostsPage() {
           </thead>
           <tbody>
             {posts.map((p) => (
-              <tr key={p.id} className={cn('border-b border-[#ECEEF2] last:border-0 hover:bg-[#FAFBFC]', selected.has(p.id) && 'bg-primary/4')}>
+              <tr key={p.id} className={cn('border-b border-row-line last:border-0 hover:bg-row-hover', selected.has(p.id) && 'bg-primary/4')}>
                 <td className={td}><input type="checkbox" aria-label={`Select ${p.title}`} checked={selected.has(p.id)} onChange={() => toggle(p.id)} /></td>
                 <td className={td}>
                   <Link to={`/blog/${p.id}`} className="flex max-w-sm items-center gap-2.5 hover:underline">

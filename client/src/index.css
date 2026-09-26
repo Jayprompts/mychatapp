@@ -19,6 +19,19 @@
   --color-text-tertiary: #A0A2A9;
   --color-community: #8B5CF6;
 
+  /* Added for dark mode (Phase 10): every fixed colour now has a token, so the theme swaps in one place */
+  --color-accent: #B620E0;
+  --color-warning-ink: #8F6B00; /* readable amber text on light backgrounds */
+  --color-pink-ink: #DB2777;
+  --color-teal-ink: #0F766E;
+  --color-toast: #1C1E21;
+  --color-admin-bg: #F4F5F7;
+  --color-table-head: #F4F5F7;
+  --color-row-line: #ECEEF2;
+  --color-row-hover: #FAFBFC;
+  --color-skeleton: #E4E6EB;
+  --color-skeleton-shine: #F0F2F5;
+
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
@@ -31,8 +44,44 @@
   --shadow-brand: 0 4px 16px rgba(8, 102, 255, 0.25);
 }
 
+/* Dark theme (per the design's dark tokens): <html class="dark"> — set before first paint by /theme-init.js */
+@custom-variant dark (&:where(.dark, .dark *));
+
+.dark {
+  color-scheme: dark; /* native scrollbars, <select> menus, date pickers */
+  --color-primary: #2D88FF;
+  --color-primary-hover: #4599FF;
+  --color-bg: #18191A;
+  --color-card: #242526;
+  --color-text-primary: #E4E6EB;
+  --color-text-secondary: #B0B3B8;
+  --color-text-tertiary: #8A8D91;
+  --color-border: #3A3B3C;
+  --color-surface-2: #3A3B3C;
+  --color-accent: #D27AF2;
+  --color-warning-ink: #F7B928;
+  --color-pink-ink: #F472B6;
+  --color-teal-ink: #2DD4BF;
+  --color-toast: #3A3B3C;
+  --color-admin-bg: #18191A;
+  --color-table-head: #2D2F33;
+  --color-row-line: #2F3031;
+  --color-row-hover: #2A2B2D;
+  --color-skeleton: #2D2F33;
+  --color-skeleton-shine: #3A3B3C;
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.35);
+  --shadow-modal: 0 8px 40px rgba(0, 0, 0, 0.6);
+  --shadow-toast: 0 4px 20px rgba(0, 0, 0, 0.5);
+}
+
 * {
   box-sizing: border-box;
+}
+
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition: none !important;
 }
 
 html {
@@ -45,8 +94,8 @@ html {
 
 body {
   font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background-color: #F7F8FA;
-  color: #050505;
+  background-color: var(--color-bg);
+  color: var(--color-text-primary);
   -webkit-font-smoothing: antialiased;
 }
 
@@ -75,11 +124,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #E4E6EB;
+  background: var(--color-border);
   border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #C0C2C9;
+  background: var(--color-text-tertiary);
 }
 
 /* Skeleton shimmer */
@@ -89,7 +138,7 @@ body {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #E4E6EB 25%, #F0F2F5 50%, #E4E6EB 75%);
+  background: linear-gradient(90deg, var(--color-skeleton) 25%, var(--color-skeleton-shine) 50%, var(--color-skeleton) 75%);
   background-size: 800px 100%;
   animation: shimmer 1.4s infinite linear;
   border-radius: 8px;
@@ -107,13 +156,13 @@ body {
 
 /* Focus ring */
 .focus-ring:focus-visible {
-  outline: 2px solid #0866FF;
+  outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
 /* Input focus */
 .input-focus:focus {
-  border-color: #0866FF;
+  border-color: var(--color-primary);
   box-shadow: 0 0 0 3px rgba(8, 102, 255, 0.15);
 }
 

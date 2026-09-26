@@ -11,6 +11,7 @@ import { AdminRoleBadge, FilterSelect, PageTitle, Pagination, StatusBadge, Table
 import type { ReportDetail, ReportTargetType } from '@/features/admin/types';
 import { useMe } from '@/features/auth/api';
 import { PostCover } from '@/features/blog/components/PostCover';
+import { plainText } from '@/features/blog/markdown';
 import { errorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { formatAgo, formatPostDate } from '@/lib/time';
@@ -66,7 +67,7 @@ export function ReportsPage() {
             {(reports.data?.rows ?? []).map((r) => {
               const T = TYPES[r.targetType];
               return (
-                <tr key={`${r.targetType}:${r.targetId}`} onClick={() => setOpen({ type: r.targetType, id: r.targetId })} className="cursor-pointer border-b border-[#ECEEF2] last:border-0 hover:bg-[#FAFBFC]">
+                <tr key={`${r.targetType}:${r.targetId}`} onClick={() => setOpen({ type: r.targetType, id: r.targetId })} className="cursor-pointer border-b border-row-line last:border-0 hover:bg-row-hover">
                   <td className={td}>
                     <button type="button" className="flex max-w-md items-center gap-2.5 text-left" aria-label={`Open report about ${T.label.toLowerCase()} ${r.snapshot}`}>
                       <span className="flex size-7 shrink-0 items-center justify-center rounded-md bg-surface-2 text-text-secondary" title={T.label}><T.icon size={14} /></span>
@@ -153,7 +154,7 @@ function ReportDrawer({ target, onClose }: { target: { type: ReportTargetType; i
                     <AdminRoleBadge role={d.author.role} />
                     {d.author.status !== 'active' && <StatusBadge status={d.author.status as 'suspended' | 'banned'} />}
                   </div>
-                  <p className={cn('mt-2 text-xs', d.priorAboutAuthor ? 'font-semibold text-[#B68A00]' : 'text-text-secondary')}>
+                  <p className={cn('mt-2 text-xs', d.priorAboutAuthor ? 'font-semibold text-warning-ink' : 'text-text-secondary')}>
                     {d.priorAboutAuthor ? `${d.priorAboutAuthor} earlier report${d.priorAboutAuthor === 1 ? '' : 's'} about them led to action` : 'No earlier action against them'}
                   </p>
                 </section>
@@ -222,7 +223,7 @@ function Context({ d }: { d: ReportDetail }) {
         <PostCover coverUrl={c.coverUrl} theme={c.coverTheme} className="h-24" />
         <div className="p-3">
           <Link to={c.url} className="text-[15px] font-bold hover:underline">{c.title}</Link>
-          <p className="mt-1 line-clamp-6 text-[13px] whitespace-pre-wrap text-text-secondary">{c.body}</p>
+          <p className="mt-1 line-clamp-6 text-[13px] whitespace-pre-wrap text-text-secondary">{plainText(c.body)}</p>
         </div>
       </article>
     );

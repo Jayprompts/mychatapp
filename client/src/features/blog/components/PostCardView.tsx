@@ -63,7 +63,7 @@ export function HeroCard({ post: p }: { post: PostCard }) {
       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 p-7">
         <div className="flex items-center gap-2">
-          <span className="rounded-full bg-white/90">
+          <span className="rounded-full bg-card/90">
             <TagChip tag={p.tag} />
           </span>
           {p.featured && <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-semibold text-white">Featured</span>}

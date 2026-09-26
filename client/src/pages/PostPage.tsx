@@ -153,7 +153,7 @@ function Article({ post: p, onShare, onReport }: { post: PostDetail } & Actions)
 
       <div className="px-4 pt-6 sm:px-0 sm:pt-8">
         {!published && (
-          <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-[#8A6A00]">
+          <div className="mb-5 flex flex-wrap items-center gap-3 rounded-lg border border-warning/40 bg-warning/10 px-4 py-3 text-sm text-warning-ink">
             <EyeOff size={16} className="shrink-0" />
             <span className="flex-1">This is a draft — only you can see it.</span>
             <Link to={`/blog/write/${p.id}`} className={buttonClasses({ size: 'sm', variant: 'outline' })}>

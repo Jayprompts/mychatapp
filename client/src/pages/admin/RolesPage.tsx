@@ -62,7 +62,7 @@ export function RolesPage() {
           </thead>
           <tbody>
             {(staff.data?.users ?? []).map((u) => (
-              <tr key={u.id} className="border-b border-[#ECEEF2] last:border-0">
+              <tr key={u.id} className="border-b border-row-line last:border-0">
                 <td className={td}>
                   <span className="flex items-center gap-2.5">
                     <Avatar name={u.displayName} src={u.avatarUrl} size={28} />
@@ -105,7 +105,7 @@ export function RolesPage() {
           </thead>
           <tbody>
             {MATRIX.map(([label, allowed]) => (
-              <tr key={label} className="border-b border-[#ECEEF2] last:border-0">
+              <tr key={label} className="border-b border-row-line last:border-0">
                 <td className={td}>{label}</td>
                 {STAFF_ROLES.map((r) => (
                   <td key={r} className={td} aria-label={allowed[r as Exclude<Role, 'user'>] ? 'Yes' : 'No'}>

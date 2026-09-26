@@ -16,7 +16,7 @@ export function Toaster() {
           role="status"
           className={cn(
             'toast-enter flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-medium text-white shadow-toast',
-            t.tone === 'error' ? 'bg-error' : 'bg-text-primary/90',
+            t.tone === 'error' ? 'bg-error' : 'bg-toast/95',
           )}
         >
           {t.tone === 'error' && <CircleAlert size={16} aria-hidden />}

@@ -14,7 +14,7 @@ export function LiveToaster() {
         <div
           key={t.id}
           role="status"
-          className="live-toast-enter pointer-events-auto relative flex items-center gap-3 overflow-hidden rounded-[14px] border border-white/8 bg-[#1C1E21] py-3 pr-3 pl-4 shadow-[0_8px_32px_rgba(0,0,0,0.28)]"
+          className="live-toast-enter pointer-events-auto relative flex items-center gap-3 overflow-hidden rounded-[14px] border border-white/8 bg-toast py-3 pr-3 pl-4 shadow-[0_8px_32px_rgba(0,0,0,0.28)]"
         >
           <span className="gradient-brand absolute inset-y-0 left-0 w-[3px]" aria-hidden />
           <button

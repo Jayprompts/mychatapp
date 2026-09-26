@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowLeft, ChevronRight, KeyRound, LogOut, Mail, MonitorSmartphone, Trash2 } from 'lucide-react';
+import { ArrowLeft, ChevronRight, KeyRound, LogOut, Mail, Monitor, MonitorSmartphone, Moon, Sun, Trash2 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -14,14 +14,15 @@ import { desktopEnabled, desktopPermission, disableDesktop, enableDesktop } from
 import type { User } from '@/features/auth/types';
 import { useBlockedUsers, useChangeEmail, useChangePassword, useDeleteAccount, useSetBlocked, useUpdatePrivacy } from '@/features/profile/api';
 import { ApiError, errorMessage } from '@/lib/api';
+import { cn } from '@/lib/cn';
+import { setThemePref, useThemePref, type ThemePref } from '@/lib/theme';
 import { formatPostDate } from '@/lib/time';
 import { toast } from '@/lib/toast';
 
 const fieldError = (err: unknown, f: string) => (err instanceof ApiError ? err.details?.[f]?.[0] : undefined);
 const generalError = (err: unknown) => (err && !(err instanceof ApiError && err.details) ? errorMessage(err) : null);
 
-// /settings — per the design: Account · Privacy · Sessions · Danger zone.
-// (Appearance arrives with dark mode.)
+// /settings — per the design: Account · Notifications · Privacy · Appearance · Sessions · Danger zone.
 export function SettingsPage() {
   const { data: me } = useMe();
   const navigate = useNavigate();
@@ -41,6 +42,9 @@ export function SettingsPage() {
         </Section>
         <Section title="Privacy">
           <Privacy me={me} />
+        </Section>
+        <Section title="Appearance">
+          <Appearance />
         </Section>
         <Sessions />
         <DangerZone />
@@ -222,6 +226,40 @@ function Privacy({ me }: { me: User }) {
       label="Show online status"
       description={me.showOnlineStatus ? 'People can see when you’re active and when you were last seen.' : 'Hidden — nobody sees when you’re online or last seen.'}
     />
+  );
+}
+
+const THEMES: { value: ThemePref; label: string; icon: typeof Sun }[] = [
+  { value: 'light', label: 'Light', icon: Sun },
+  { value: 'dark', label: 'Dark', icon: Moon },
+  { value: 'system', label: 'System', icon: Monitor },
+];
+
+// Per the design: a segmented Light/Dark control (plus System, which follows the device).
+function Appearance() {
+  const pref = useThemePref();
+  return (
+    <div className="py-2">
+      <p className="mb-2.5 text-[15px] font-medium text-text-primary">Theme</p>
+      <div role="radiogroup" aria-label="Theme" className="flex rounded-[10px] border border-border bg-bg p-1">
+        {THEMES.map(({ value, label, icon: Icon }) => (
+          <button
+            key={value}
+            type="button"
+            role="radio"
+            aria-checked={pref === value}
+            onClick={() => setThemePref(value)}
+            className={cn(
+              'flex flex-1 items-center justify-center gap-1.5 rounded-[7px] py-2 text-sm transition-all',
+              pref === value ? 'bg-card font-semibold text-text-primary shadow-[0_1px_4px_rgba(0,0,0,0.12)]' : 'font-medium text-text-secondary hover:text-text-primary',
+            )}
+          >
+            <Icon size={15} aria-hidden /> {label}
+          </button>
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-text-secondary">{pref === 'system' ? 'Matches your device’s setting.' : 'Saved on this device.'}</p>
+    </div>
   );
 }
 

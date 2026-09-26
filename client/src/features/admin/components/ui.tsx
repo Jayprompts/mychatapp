@@ -19,7 +19,7 @@ export function AdminRoleBadge({ role }: { role: Role }) {
 
 const STATUS_STYLE: Record<AdminUser['status'], { label: string; className: string }> = {
   active: { label: 'Active', className: 'text-success' },
-  suspended: { label: 'Suspended', className: 'text-[#B68A00]' },
+  suspended: { label: 'Suspended', className: 'text-warning-ink' },
   banned: { label: 'Banned', className: 'text-error' },
 };
 export function StatusBadge({ status, reason }: { status: AdminUser['status']; reason?: string }) {
@@ -67,13 +67,13 @@ export function TableCard({ children, footer }: { children: ReactNode; footer?: 
     </div>
   );
 }
-export const th = 'bg-[#F4F5F7] px-3 py-2.5 text-left text-[11px] font-bold tracking-[0.05em] whitespace-nowrap text-text-secondary uppercase';
+export const th = 'bg-table-head px-3 py-2.5 text-left text-[11px] font-bold tracking-[0.05em] whitespace-nowrap text-text-secondary uppercase';
 export const td = 'px-3 py-2.5 align-middle text-[13px]';
 
 export function Pagination({ page, pageSize, total, onPage }: { page: number; pageSize: number; total: number; onPage: (p: number) => void }) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const from = total ? (page - 1) * pageSize + 1 : 0;
-  const btn = 'flex size-7 items-center justify-center rounded-[5px] border border-border bg-card text-text-primary disabled:bg-[#F4F5F7] disabled:text-text-tertiary';
+  const btn = 'flex size-7 items-center justify-center rounded-[5px] border border-border bg-card text-text-primary disabled:bg-table-head disabled:text-text-tertiary';
   return (
     <div className="flex items-center justify-between border-t border-border px-3.5 py-2.5 text-xs text-text-secondary">
       <span>

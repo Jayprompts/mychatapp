@@ -17,7 +17,7 @@ export function PostRow({ post: p }: { post: PostCard }) {
         <p className="truncate text-sm font-semibold text-text-primary">{p.title || 'Untitled draft'}</p>
         <p className="mt-0.5 flex items-center gap-3 text-xs text-text-secondary">
           {draft ? (
-            <span className="rounded-full bg-warning/15 px-2 font-semibold text-[#8A6A00]">Draft · edited {formatListTime(p.updatedAt)}</span>
+            <span className="rounded-full bg-warning/15 px-2 font-semibold text-warning-ink">Draft · edited {formatListTime(p.updatedAt)}</span>
           ) : (
             <>
               <span>{formatPostDate(p.publishedAt ?? p.updatedAt)}</span>

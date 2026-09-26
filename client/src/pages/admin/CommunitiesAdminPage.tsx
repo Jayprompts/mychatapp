@@ -68,7 +68,7 @@ export function AdminCommunitiesPage() {
           </thead>
           <tbody>
             {communities.map((c) => (
-              <tr key={c.id} className="border-b border-[#ECEEF2] last:border-0 hover:bg-[#FAFBFC]">
+              <tr key={c.id} className="border-b border-row-line last:border-0 hover:bg-row-hover">
                 <td className={td}>
                   <Link to={`/communities/${c.id}`} className="flex items-center gap-2.5 hover:underline">
                     <CommunityAvatar icon={c.icon} theme={c.theme} size={30} />

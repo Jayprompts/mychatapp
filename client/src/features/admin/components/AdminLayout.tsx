@@ -47,7 +47,7 @@ export function AdminLayout() {
   const drawer = drawerOn === pathname; // navigating closes it
 
   const sidebar = (mini: boolean) => (
-    <div className="flex h-full flex-col bg-[#1C1E21] text-[#D0D2D6]">
+    <div className="flex h-full flex-col bg-[#1C1E21] text-[#D0D2D6] dark:border-r dark:border-border">
       <div className={cn('flex h-[52px] shrink-0 items-center gap-2.5 border-b border-white/7', mini ? 'justify-center px-2' : 'px-4')}>
         <LogoMark size={26} />
         {!mini && (
@@ -108,7 +108,7 @@ export function AdminLayout() {
   );
 
   return (
-    <div className="flex h-dvh bg-[#F4F5F7]">
+    <div className="flex h-dvh bg-admin-bg">
       {/* tablet: icon rail (tap to expand) · desktop: always the full sidebar */}
       <aside className={cn('hidden shrink-0 transition-[width] duration-200 md:block lg:w-[220px]', expanded ? 'md:w-[220px]' : 'md:w-[52px]')}>
         <div className="h-full lg:hidden">{sidebar(!expanded)}</div>
@@ -135,7 +135,7 @@ export function AdminLayout() {
             <span className="truncate text-sm font-bold text-text-primary">{TITLES[pathname] ?? 'Admin'}</span>
             <span className="hidden text-xs text-text-secondary sm:inline">/ {new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
           </div>
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-[#F4F5F7] py-1 pr-2.5 pl-1.5">
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-table-head py-1 pr-2.5 pl-1.5">
             <Avatar name={me.displayName} src={me.avatarUrl} size={24} />
             <span className="hidden text-xs font-bold text-text-primary sm:inline">{me.displayName}</span>
             <AdminRoleBadge role={me.role} />

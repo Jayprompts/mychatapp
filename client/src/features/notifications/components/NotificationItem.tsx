@@ -9,16 +9,16 @@ import { describe } from '../format';
 import type { AppNotification, NotificationType } from '../types';
 
 const BADGES: Record<NotificationType, { icon: LucideIcon; className: string }> = {
-  post_like: { icon: Heart, className: 'bg-[#FFECEC] text-error' },
-  comment_like: { icon: Heart, className: 'bg-[#FFECEC] text-error' },
-  post_comment: { icon: MessageCircle, className: 'bg-[#E8F6EC] text-success' },
-  comment_reply: { icon: MessageCircle, className: 'bg-[#E8F6EC] text-success' },
-  mention: { icon: AtSign, className: 'bg-[#F6E8FC] text-[#B620E0]' },
-  community_join: { icon: Users, className: 'bg-[#FFF6E0] text-[#B68A00]' },
-  community_request: { icon: Users, className: 'bg-[#FFF6E0] text-[#B68A00]' },
-  request_approved: { icon: Users, className: 'bg-[#FFF6E0] text-[#B68A00]' },
-  group_added: { icon: UserPlus, className: 'bg-[#EEF3FF] text-primary' },
-  moderation: { icon: ShieldAlert, className: 'bg-[#FFF6E0] text-[#B68A00]' },
+  post_like: { icon: Heart, className: 'bg-error/15 text-error' },
+  comment_like: { icon: Heart, className: 'bg-error/15 text-error' },
+  post_comment: { icon: MessageCircle, className: 'bg-success/12 text-success' },
+  comment_reply: { icon: MessageCircle, className: 'bg-success/12 text-success' },
+  mention: { icon: AtSign, className: 'bg-accent/12 text-accent' },
+  community_join: { icon: Users, className: 'bg-warning/15 text-warning-ink' },
+  community_request: { icon: Users, className: 'bg-warning/15 text-warning-ink' },
+  request_approved: { icon: Users, className: 'bg-warning/15 text-warning-ink' },
+  group_added: { icon: UserPlus, className: 'bg-primary/15 text-primary' },
+  moderation: { icon: ShieldAlert, className: 'bg-warning/15 text-warning-ink' },
 };
 
 // One row, per the design: avatar with a type badge, "Bob and 2 others liked your post…", time, unread dot.
@@ -39,8 +39,11 @@ export function NotificationItem({ n, onOpen }: { n: AppNotification; onOpen?: (
     >
       <span className="relative shrink-0">
         {n.type === 'moderation' ? <LogoMark size={40} /> : <Avatar name={actor?.displayName ?? '?'} src={actor?.avatarUrl ?? null} size={40} />}
-        <span className={cn('absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full ring-2 ring-card', className)}>
-          <Icon size={11} strokeWidth={2.4} />
+        {/* solid base under the tint, so the avatar never shows through (matters on dark) */}
+        <span className="absolute -right-1 -bottom-1 size-5 rounded-full bg-card ring-2 ring-card">
+          <span className={cn('flex size-full items-center justify-center rounded-full', className)}>
+            <Icon size={11} strokeWidth={2.4} />
+          </span>
         </span>
       </span>
       <span className="min-w-0 flex-1">

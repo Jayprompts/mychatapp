@@ -312,7 +312,7 @@ function Editor({ initial, onCreated }: { initial: PostDetail | null; onCreated:
         <section aria-label="Cover" className="flex flex-col gap-3">
           <PostCover coverUrl={live?.coverUrl ?? null} theme={fields.coverTheme} className="h-40 rounded-2xl sm:h-56">
             <div className="absolute inset-0 flex items-center justify-center gap-2 bg-black/15">
-              <label className="flex cursor-pointer items-center gap-1.5 rounded-full bg-white/90 px-4 py-2 text-[13px] font-semibold text-text-primary shadow transition-colors hover:bg-white">
+              <label className="flex cursor-pointer items-center gap-1.5 rounded-full bg-card/90 px-4 py-2 text-[13px] font-semibold text-text-primary shadow transition-colors hover:bg-card">
                 <ImagePlus size={15} /> {coverUpload.isPending ? 'Uploading…' : live?.coverUrl ? 'Replace photo' : 'Upload cover photo'}
                 <input
                   type="file"
@@ -330,7 +330,7 @@ function Editor({ initial, onCreated }: { initial: PostDetail | null; onCreated:
                 <button
                   type="button"
                   onClick={() => update.mutate({ removeCover: true }, { onError: (e) => toast(errorMessage(e), 'error') })}
-                  className="rounded-full bg-white/90 px-4 py-2 text-[13px] font-semibold text-error shadow transition-colors hover:bg-white"
+                  className="rounded-full bg-card/90 px-4 py-2 text-[13px] font-semibold text-error shadow transition-colors hover:bg-card"
                 >
                   Remove
                 </button>
