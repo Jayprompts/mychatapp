@@ -13,7 +13,7 @@ import { chooseUsernameSchema } from '../schemas';
 import type { PendingOAuth } from '../types';
 
 // /welcome/username — the one step after "Continue with Google/GitHub" for someone new to Grove:
-// confirm their name and pick a username (usernames can't be changed later). Then straight in.
+// confirm their name and pick a username (changeable later in Edit profile). Then straight in.
 export function ChooseUsernamePage() {
   const pending = usePendingOAuth();
   const from = (useLocation().state as { from?: string } | null)?.from;
@@ -82,7 +82,7 @@ function ChooseForm({ pending }: { pending: PendingOAuth }) {
           autoCorrect="off"
           spellCheck={false}
           autoFocus
-          hint="Letters, numbers, dots and underscores. This can’t be changed later."
+          hint="Letters, numbers, dots and underscores. You can change it later in Edit profile."
           error={errors.username?.message ?? serverError}
           {...register('username')}
         />
