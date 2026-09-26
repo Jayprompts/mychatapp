@@ -50,6 +50,10 @@ export const login: RequestHandler = async (req, res) => {
 
   // Always run the hash check (even with no user) so response time doesn't reveal which accounts exist.
   const ok = await verifyPassword(password, user?.passwordHash);
+  if (user && !user.passwordHash && user.authProvider !== 'local' && user.status !== 'deleted') {
+    const name = user.authProvider === 'google' ? 'Google' : 'GitHub';
+    throw new AppError(401, `This account signs in with ${name} — use “Continue with ${name}”`);
+  }
   if (!user || !ok) throw new AppError(401, 'Invalid email/username or password');
   if (user.status !== 'active') throw new AppError(403, accountBlockedMessage(user));
 

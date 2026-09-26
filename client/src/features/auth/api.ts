@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import { api, ApiError, setUnauthorizedHandler } from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
 import { createStore, useStore } from '@/lib/store';
-import type { User } from './types';
+import type { OAuthProvider, PendingOAuth, User } from './types';
 import type { LoginValues } from './schemas';
 
 export const meQueryKey = ['auth', 'me'] as const;
@@ -97,3 +97,29 @@ function useSignOut(path: '/auth/logout' | '/auth/logout-all') {
 
 export const useLogout = () => useSignOut('/auth/logout');
 export const useLogoutAll = () => useSignOut('/auth/logout-all');
+
+// ── Sign in with Google / GitHub ──
+
+// Which buttons to show (a provider without keys on the server just isn't offered).
+export const useAuthProviders = () =>
+  useQuery({ queryKey: ['auth', 'providers'], queryFn: () => api<{ providers: OAuthProvider[] }>('/auth/providers').then((d) => d.providers), staleTime: Infinity });
+
+// A full-page trip to Google/GitHub and back (never fetch): where to land afterwards rides along.
+export const oauthStartUrl = (provider: OAuthProvider, next?: string) => `/api/auth/${provider}${next ? `?next=${encodeURIComponent(next)}` : ''}`;
+// Settings ▸ Connect: same trip, but it adds the provider to the signed-in account.
+export const oauthConnectUrl = (provider: OAuthProvider) => `/api/auth/${provider}?link=1`;
+
+export const usePendingOAuth = () =>
+  useQuery({ queryKey: ['auth', 'oauth-pending'], queryFn: () => api<PendingOAuth>('/auth/oauth/pending'), retry: false, staleTime: Infinity });
+
+export function useCompleteOAuth() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { username: string; displayName?: string }) => api<{ user: User }>('/auth/oauth/complete', { method: 'POST', body: input }).then((d) => d.user),
+    onSuccess: (user) => {
+      loginReturn = null;
+      expiredStore.reset();
+      qc.setQueryData(meQueryKey, user);
+    },
+  });
+}

@@ -190,10 +190,15 @@ export const unblock: RequestHandler = async (req, res) => {
   res.json({ success: true, data: { blocked: false } });
 };
 
-// DELETE /api/users/me { password, confirm: "DELETE" }
+// DELETE /api/users/me { password?, confirm: "DELETE" } — Google/GitHub-only accounts have no password to ask for
 export const removeAccount: RequestHandler = async (req, res) => {
   const me = authUser(req);
-  await requirePassword(me._id, (req.body as { password: string }).password);
+  const { password } = req.body as { password?: string };
+  const withPassword = await User.findById(me._id).select('+passwordHash');
+  if (withPassword?.passwordHash) {
+    if (!password) throw new AppError(400, 'Enter your password', { password: ['Enter your password'] });
+    await requirePassword(me._id, password);
+  }
   await deleteAccount(me);
   res.clearCookie(AUTH_COOKIE, clearCookieOptions);
   res.json({ success: true, data: { deleted: true } });

@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useNavigate, useSearchParams } from 'react-router';
 import { ArrowLeft, ChevronRight, KeyRound, LogOut, Mail, Monitor, MonitorSmartphone, Moon, Sun, Trash2 } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
@@ -8,11 +8,12 @@ import { FormAlert } from '@/components/ui/FormAlert';
 import { Input } from '@/components/ui/Input';
 import { Modal } from '@/components/ui/Modal';
 import { Switch } from '@/components/ui/Switch';
-import { useLogout, useLogoutAll, useMe } from '@/features/auth/api';
+import { oauthConnectUrl, useAuthProviders, useLogout, useLogoutAll, useMe } from '@/features/auth/api';
+import { GitHubIcon, GoogleIcon } from '@/features/auth/components/SocialButtons';
 import { useUpdateNotificationPrefs } from '@/features/notifications/api';
 import { desktopEnabled, desktopPermission, disableDesktop, enableDesktop } from '@/lib/desktopNotify';
-import type { User } from '@/features/auth/types';
-import { useBlockedUsers, useChangeEmail, useChangePassword, useDeleteAccount, useSetBlocked, useUpdatePrivacy } from '@/features/profile/api';
+import type { OAuthProvider, User } from '@/features/auth/types';
+import { useBlockedUsers, useChangeEmail, useChangePassword, useDeleteAccount, useSetBlocked, useUnlinkProvider, useUpdatePrivacy } from '@/features/profile/api';
 import { ApiError, errorMessage } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { setThemePref, useThemePref, type ThemePref } from '@/lib/theme';
@@ -22,7 +23,7 @@ import { toast } from '@/lib/toast';
 const fieldError = (err: unknown, f: string) => (err instanceof ApiError ? err.details?.[f]?.[0] : undefined);
 const generalError = (err: unknown) => (err && !(err instanceof ApiError && err.details) ? errorMessage(err) : null);
 
-// /settings — per the design: Account · Notifications · Privacy · Appearance · Sessions · Danger zone.
+// /settings — per the design: Account · Sign-in methods · Notifications · Privacy · Appearance · Sessions · Danger zone.
 export function SettingsPage() {
   const { data: me } = useMe();
   const navigate = useNavigate();
@@ -37,6 +38,7 @@ export function SettingsPage() {
       </header>
       <div className="flex flex-col gap-4 px-4 pt-4 sm:px-0 sm:pt-0">
         <Account me={me} />
+        <SignInMethods me={me} />
         <Section title="Notifications">
           <NotificationSettings me={me} />
         </Section>
@@ -62,16 +64,17 @@ function Section({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Row({ icon, label, value, onClick }: { icon: ReactNode; label: string; value: string; onClick: () => void }) {
+function Row({ icon, label, value, onClick }: { icon: ReactNode; label: string; value: string; onClick?: () => void }) {
+  const Tag = onClick ? 'button' : 'div';
   return (
-    <button type="button" onClick={onClick} className="flex w-full items-center gap-3 border-b border-border py-3.5 text-left last:border-0">
+    <Tag type={onClick ? 'button' : undefined} onClick={onClick} className="flex w-full items-center gap-3 border-b border-border py-3.5 text-left last:border-0">
       <span className="flex size-9 items-center justify-center rounded-[10px] bg-primary/8 text-primary">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-[15px] font-medium text-text-primary">{label}</span>
         <span className="block truncate text-[13px] text-text-secondary">{value}</span>
       </span>
-      <ChevronRight size={18} className="text-text-tertiary" />
-    </button>
+      {onClick && <ChevronRight size={18} className="text-text-tertiary" />}
+    </Tag>
   );
 }
 
@@ -83,7 +86,8 @@ function Account({ me }: { me: User }) {
 
   return (
     <Section title="Account">
-      <Row icon={<Mail size={17} />} label="Email address" value={me.email} onClick={() => setDialog('email')} />
+      {/* Google/GitHub-only accounts have no password to confirm an email change with (their email comes from the provider) */}
+      <Row icon={<Mail size={17} />} label="Email address" value={me.email} onClick={local ? () => setDialog('email') : undefined} />
       {local && (
         <Row
           icon={<KeyRound size={17} />}
@@ -229,6 +233,80 @@ function Privacy({ me }: { me: User }) {
   );
 }
 
+const PROVIDER_NAME: Record<OAuthProvider, string> = { google: 'Google', github: 'GitHub' };
+const LINK_ERRORS: Record<string, string> = {
+  linked_elsewhere: 'That account is already connected to a different Grove account.',
+  cancelled: 'Connecting was cancelled.',
+  expired: 'That took too long — please try again.',
+};
+
+// Password, Google, GitHub: which ways you can sign in. Connect adds one (a trip to Google/GitHub and back);
+// Disconnect removes one — never the last.
+function SignInMethods({ me }: { me: User }) {
+  const { data: available = [] } = useAuthProviders();
+  const unlink = useUnlinkProvider();
+  const [params, setParams] = useSearchParams();
+  const shown = useRef('');
+
+  // Back from Google/GitHub: say how it went (once), then tidy the address.
+  useEffect(() => {
+    const connected = params.get('connected') as OAuthProvider | null;
+    const error = params.get('oauth_error');
+    if ((!connected && !error) || shown.current === params.toString()) return;
+    shown.current = params.toString();
+    if (connected && PROVIDER_NAME[connected]) toast(`${PROVIDER_NAME[connected]} connected — you can sign in with it now`);
+    if (error) toast(LINK_ERRORS[error] ?? 'Couldn’t connect that account. Please try again.', 'error');
+    setParams({}, { replace: true });
+  }, [params, setParams]);
+
+  const providers = (['google', 'github'] as const).filter((p) => available.includes(p) || me.linkedProviders.includes(p));
+  if (!providers.length) return null;
+  const methods = (me.authProvider === 'local' ? 1 : 0) + me.linkedProviders.length;
+
+  return (
+    <Section title="Sign-in methods">
+      <div className="flex items-center gap-3 border-b border-border py-3.5">
+        <span className="flex size-9 items-center justify-center rounded-[10px] bg-primary/8 text-primary">
+          <KeyRound size={17} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-medium text-text-primary">Password</span>
+          <span className="block text-[13px] text-text-secondary">{me.authProvider === 'local' ? 'Email or username + password' : 'Not set — you sign in with ' + PROVIDER_NAME[me.authProvider]}</span>
+        </span>
+      </div>
+      {providers.map((p) => {
+        const linked = me.linkedProviders.includes(p);
+        return (
+          <div key={p} className="flex items-center gap-3 border-b border-border py-3.5 last:border-0">
+            <span className="flex size-9 items-center justify-center rounded-[10px] bg-bg text-text-primary">{p === 'google' ? <GoogleIcon /> : <GitHubIcon />}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[15px] font-medium text-text-primary">{PROVIDER_NAME[p]}</span>
+              <span className={cn('block text-[13px]', linked ? 'text-success-ink' : 'text-text-secondary')}>{linked ? 'Connected' : 'Not connected'}</span>
+            </span>
+            {linked ? (
+              <button
+                type="button"
+                disabled={methods <= 1 || unlink.isPending}
+                title={methods <= 1 ? 'This is your only way to sign in' : undefined}
+                onClick={() => unlink.mutate(p, { onSuccess: () => toast(`${PROVIDER_NAME[p]} disconnected`), onError: (e) => toast(errorMessage(e), 'error') })}
+                className="rounded-full border-[1.5px] border-border px-3.5 py-1.5 text-[13px] font-semibold text-text-primary hover:bg-bg disabled:opacity-40"
+              >
+                Disconnect
+              </button>
+            ) : (
+              available.includes(p) && (
+                <a href={oauthConnectUrl(p)} className="rounded-full bg-primary/8 px-3.5 py-1.5 text-[13px] font-semibold text-primary-ink hover:bg-primary/12">
+                  Connect
+                </a>
+              )
+            )}
+          </div>
+        );
+      })}
+    </Section>
+  );
+}
+
 const THEMES: { value: ThemePref; label: string; icon: typeof Sun }[] = [
   { value: 'light', label: 'Light', icon: Sun },
   { value: 'dark', label: 'Dark', icon: Moon },
@@ -310,6 +388,8 @@ function DangerZone() {
 }
 
 function DeleteAccountDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { data: me } = useMe();
+  const needsPassword = me?.authProvider === 'local'; // Google/GitHub-only accounts have none
   const [typed, setTyped] = useState('');
   const [password, setPassword] = useState('');
   const del = useDeleteAccount();
@@ -329,9 +409,11 @@ function DeleteAccountDialog({ open, onClose }: { open: boolean; onClose: () => 
           Messages you sent stay in other people's chats, shown as “Deleted user”.
         </div>
         <Input label='Type "DELETE" to confirm' value={typed} onChange={(e) => setTyped(e.target.value)} placeholder="DELETE" autoComplete="off" />
-        <Input label="Your password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} error={fieldError(del.error, 'password')} />
+        {needsPassword && (
+          <Input label="Your password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} error={fieldError(del.error, 'password')} />
+        )}
         {generalError(del.error) && <FormAlert>{generalError(del.error)}</FormAlert>}
-        <Button type="submit" variant="danger" fullWidth loading={del.isPending} disabled={typed !== 'DELETE' || !password}>
+        <Button type="submit" variant="danger" fullWidth loading={del.isPending} disabled={typed !== 'DELETE' || (needsPassword && !password)}>
           Delete my account
         </Button>
       </form>

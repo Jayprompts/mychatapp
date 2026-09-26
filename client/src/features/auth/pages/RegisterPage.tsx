@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/Input';
 import { ApiError, errorMessage } from '@/lib/api';
 import { useRegister } from '../api';
 import { registerSchema, type RegisterValues } from '../schemas';
+import { SocialButtons } from '../components/SocialButtons';
 
 const SERVER_FIELDS = ['username', 'email', 'password'] as const;
 
@@ -108,6 +109,8 @@ export function RegisterPage() {
           Create account
         </Button>
       </form>
+
+      <SocialButtons divider="or sign up with" />
 
       <p className="mt-6 text-center text-sm text-text-secondary">
         Already have an account?{' '}

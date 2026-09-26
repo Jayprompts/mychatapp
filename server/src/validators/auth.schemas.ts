@@ -29,5 +29,12 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Password is required'),
 });
 
+// "Choose your username" after signing up with Google/GitHub
+export const completeOAuthSchema = z.object({
+  username,
+  displayName: z.string().trim().min(1).max(50).optional(),
+});
+
+export type CompleteOAuthInput = z.infer<typeof completeOAuthSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;

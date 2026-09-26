@@ -7,14 +7,16 @@ export const loginSchema = z.object({
   password: z.string().min(1, 'Enter your password'),
 });
 
+const username = z
+  .string()
+  .trim()
+  .min(3, 'Username must be at least 3 characters')
+  .max(30, 'Username must be at most 30 characters')
+  .regex(/^[A-Za-z0-9_.]+$/, 'Only letters, numbers, underscores and dots');
+
 export const registerSchema = z
   .object({
-    username: z
-      .string()
-      .trim()
-      .min(3, 'Username must be at least 3 characters')
-      .max(30, 'Username must be at most 30 characters')
-      .regex(/^[A-Za-z0-9_.]+$/, 'Only letters, numbers, underscores and dots'),
+    username,
     email: z.string().trim().pipe(z.email('Enter a valid email address')),
     password: z
       .string()
@@ -30,5 +32,12 @@ export const registerSchema = z
     message: 'Passwords do not match',
   });
 
+// "Choose your username" after signing up with Google/GitHub
+export const chooseUsernameSchema = z.object({
+  displayName: z.string().trim().min(1, 'Enter your name').max(50, 'Name must be at most 50 characters'),
+  username,
+});
+
+export type ChooseUsernameValues = z.infer<typeof chooseUsernameSchema>;
 export type LoginValues = z.infer<typeof loginSchema>;
 export type RegisterValues = z.infer<typeof registerSchema>;

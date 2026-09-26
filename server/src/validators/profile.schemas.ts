@@ -23,7 +23,7 @@ export const changeEmailSchema = z.object({ email, password: z.string().min(1, '
 export const changePasswordSchema = z.object({ currentPassword: z.string().min(1, 'Enter your current password'), newPassword: password });
 export const privacySchema = z.object({ showOnlineStatus: z.boolean() });
 export const deleteAccountSchema = z.object({
-  password: z.string().min(1, 'Enter your password'),
+  password: z.string().optional(), // required only for accounts that have one (not Google/GitHub-only)
   confirm: z.literal('DELETE', { error: 'Type DELETE to confirm' }),
 });
 

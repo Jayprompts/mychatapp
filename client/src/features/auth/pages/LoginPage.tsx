@@ -1,4 +1,4 @@
-import { Link, useLocation } from 'react-router';
+import { Link, useLocation, useSearchParams } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { AuthHeader } from '@/components/layout/AuthLayout';
@@ -8,10 +8,13 @@ import { Input } from '@/components/ui/Input';
 import { errorMessage } from '@/lib/api';
 import { useLogin } from '../api';
 import { loginSchema } from '../schemas';
+import { SocialButtons } from '../components/SocialButtons';
 
 export function LoginPage() {
   const location = useLocation();
   const login = useLogin();
+  const [params] = useSearchParams();
+  const oauthError = oauthErrorText(params.get('oauth_error'), params.get('oauth_message'));
 
   const {
     register,
@@ -49,12 +52,14 @@ export function LoginPage() {
           {...register('password')}
         />
 
-        {login.isError && <FormAlert>{errorMessage(login.error)}</FormAlert>}
+        {login.isError ? <FormAlert>{errorMessage(login.error)}</FormAlert> : oauthError && <FormAlert>{oauthError}</FormAlert>}
 
         <Button type="submit" size="lg" fullWidth loading={login.isPending} className="mt-2">
           Log in
         </Button>
       </form>
+
+      <SocialButtons divider="or continue with" />
 
       <p className="mt-6 text-center text-sm text-text-secondary">
         Don&apos;t have an account?{' '}
@@ -64,4 +69,26 @@ export function LoginPage() {
       </p>
     </>
   );
+}
+
+// Coming back from Google/GitHub without signing in (?oauth_error=…): say what happened, plainly.
+function oauthErrorText(code: string | null, message: string | null): string | null {
+  switch (code) {
+    case null:
+      return null;
+    case 'cancelled':
+      return 'Sign-in was cancelled. You can try again, or log in with your password.';
+    case 'blocked':
+      return message || 'This account can’t sign in right now.';
+    case 'email_in_use':
+      return 'An account with this email already exists. Log in with your password — you can link Google or GitHub afterwards by signing in with an email they’ve verified.';
+    case 'no_email':
+      return 'We couldn’t get a verified email from that account. Verify your email with the provider (on GitHub: Settings → Emails), then try again.';
+    case 'expired':
+      return 'That sign-in took too long or was already used. Please try again.';
+    case 'unavailable':
+      return 'That sign-in option isn’t available right now.';
+    default:
+      return 'Something went wrong signing you in. Please try again.';
+  }
 }

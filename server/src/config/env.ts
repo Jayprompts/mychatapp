@@ -9,6 +9,13 @@ const envSchema = z.object({
   JWT_SECRET: z.string().min(32, 'JWT_SECRET must be at least 32 characters'),
   JWT_EXPIRES_DAYS: z.coerce.number().int().positive().default(7),
   UPLOADS_DIR: z.string().optional(), // default: server/uploads
+  // Sign in with Google / GitHub (Phase 9). Each is optional: without its keys, that button just doesn't show.
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
+  GITHUB_CLIENT_ID: z.string().optional(),
+  GITHUB_CLIENT_SECRET: z.string().optional(),
+  // Tests only: send the OAuth flow to a local fake provider instead of Google/GitHub. Ignored in production.
+  OAUTH_MOCK_URL: z.url().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);

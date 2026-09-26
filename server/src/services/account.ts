@@ -70,7 +70,7 @@ export async function deleteAccount(user: UserDoc) {
         showOnlineStatus: false,
         lastSeenAt: null,
       },
-      $unset: { passwordHash: 1 },
+      $unset: { passwordHash: 1, googleId: 1, githubId: 1 }, // the Google/GitHub account can start fresh
       $inc: { tokenVersion: 1 }, // every session ends
     },
   );

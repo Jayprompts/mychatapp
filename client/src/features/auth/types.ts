@@ -17,7 +17,11 @@ export type User = {
   showOnlineStatus: boolean;
   notificationPrefs: { messages: boolean; social: boolean; communities: boolean };
   passwordChangedAt: string | null;
-  authProvider: 'local' | 'google' | 'github';
+  authProvider: 'local' | 'google' | 'github'; // how the account was created
+  linkedProviders: OAuthProvider[]; // Google/GitHub accounts that can sign in to it
   lastSeenAt: string | null;
   createdAt: string;
 };
+
+export type OAuthProvider = 'google' | 'github';
+export type PendingOAuth = { provider: OAuthProvider; email: string; name: string; picture: string | null; suggestion: string; next: string };

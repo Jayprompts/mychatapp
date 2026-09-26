@@ -22,7 +22,10 @@ const userSchema = new Schema(
     displayName: { type: String, required: true, trim: true, maxlength: 50 },
     email: { type: String, required: true, unique: true, trim: true, lowercase: true },
     passwordHash: { type: String, select: false }, // optional: OAuth users have none
-    authProvider: { type: String, enum: AUTH_PROVIDERS, default: 'local' },
+    authProvider: { type: String, enum: AUTH_PROVIDERS, default: 'local' }, // how the account was created
+    // Linked sign-ins (Phase 9): the provider's own id for this person. A local account can link these too.
+    googleId: { type: String, default: undefined },
+    githubId: { type: String, default: undefined },
     role: { type: String, enum: ROLES, default: 'user', index: true },
     status: { type: String, enum: USER_STATUSES, default: 'active' },
     statusReason: { type: String, trim: true, maxlength: 200, default: '' }, // shown to them at login when suspended/banned
@@ -46,6 +49,9 @@ const userSchema = new Schema(
   },
   { timestamps: true },
 );
+
+userSchema.index({ googleId: 1 }, { unique: true, sparse: true });
+userSchema.index({ githubId: 1 }, { unique: true, sparse: true });
 
 export type UserFields = InferSchemaType<typeof userSchema>;
 export type UserDoc = HydratedDocument<UserFields>;
@@ -74,6 +80,7 @@ export function toPublicUser(user: UserDoc) {
     },
     passwordChangedAt: user.passwordChangedAt ?? null,
     authProvider: user.authProvider,
+    linkedProviders: [user.googleId && 'google', user.githubId && 'github'].filter(Boolean) as ('google' | 'github')[],
     lastSeenAt: user.lastSeenAt ?? null,
     createdAt: user.createdAt,
   };

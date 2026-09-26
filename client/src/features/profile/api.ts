@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { endSession, meQueryKey } from '@/features/auth/api';
-import type { User } from '@/features/auth/types';
+import type { OAuthProvider, User } from '@/features/auth/types';
 import { chatKeys } from '@/features/chat/cache';
 import type { UserSummary } from '@/features/chat/types';
 import { api, upload } from '@/lib/api';
@@ -70,10 +70,19 @@ export function useSetBlocked() {
 export function useDeleteAccount() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (password: string) => api<{ deleted: boolean }>('/users/me', { method: 'DELETE', body: { password, confirm: 'DELETE' } }),
+    mutationFn: (password: string) => api<{ deleted: boolean }>('/users/me', { method: 'DELETE', body: { password: password || undefined, confirm: 'DELETE' } }),
     onSuccess: () => {
       endSession(qc);
       toast('Your account has been deleted. Take care.');
     },
+  });
+}
+
+// Settings ▸ Sign-in methods ▸ Disconnect (the server refuses the last way to sign in)
+export function useUnlinkProvider() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (provider: OAuthProvider) => api<{ user: User }>(`/users/me/providers/${provider}`, { method: 'DELETE' }).then((d) => d.user),
+    onSuccess: (user) => qc.setQueryData(meQueryKey, user),
   });
 }

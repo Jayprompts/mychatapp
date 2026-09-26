@@ -5,6 +5,7 @@ import { PublicOnly, RequireAuth } from '@/features/auth/guards';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { RegisterPage } from '@/features/auth/pages/RegisterPage';
 import { WelcomePage } from '@/features/auth/pages/WelcomePage';
+import { ChooseUsernamePage } from '@/features/auth/pages/ChooseUsernamePage';
 import { ChatsPage } from '@/pages/ChatsPage';
 import { RequireStaff } from '@/features/admin/components/RequireStaff';
 import { NotFoundPage } from '@/pages/NotFoundPage';
@@ -28,6 +29,7 @@ export const router = createBrowserRouter([
               { path: '/welcome', element: <WelcomePage /> },
               { path: '/login', element: <LoginPage /> },
               { path: '/register', element: <RegisterPage /> },
+              { path: '/welcome/username', element: <ChooseUsernamePage /> }, // after "Continue with Google/GitHub"
             ],
           },
         ],

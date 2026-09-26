@@ -23,6 +23,13 @@ export const registerLimiter = rateLimit({
   ...tooMany('Too many accounts created from this network. Try again later.'),
 });
 
+// Finishing a Google/GitHub sign-up ("Choose your username"): 5 accounts per hour per IP, but a taken
+// username doesn't use one up (it reveals nothing — the email was already verified by Google/GitHub).
+export const oauthSignupLimiter = [
+  rateLimit({ windowMs: 60 * 60 * 1000, limit: 5, skipFailedRequests: true, ...tooMany('Too many accounts created from this network. Try again later.') }),
+  rateLimit({ windowMs: 60 * 60 * 1000, limit: 30, ...tooMany('Too many attempts. Try again later.') }),
+];
+
 // New blog posts (drafts included): 30 per hour per IP — stops scripted spam, never bothers a writer.
 export const postWriteLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
