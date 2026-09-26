@@ -1,10 +1,9 @@
 import type { RequestHandler } from 'express';
 import { Conversation } from '../models/Conversation.js';
-import { DELETED_PREVIEW, EDIT_WINDOW_MS, Message, previewFor, toPublicMessage } from '../models/Message.js';
+import { EDIT_WINDOW_MS, Message, previewFor, toPublicMessage } from '../models/Message.js';
 import { authUser } from '../middleware/auth.js';
 import { assertCanMessage } from '../services/blocks.js';
-import { emitMessageUpdated, findMemberMessage } from '../services/conversations.js';
-import { deleteMedia } from '../services/media.js';
+import { emitMessageUpdated, findMemberMessage, unsendMessage } from '../services/conversations.js';
 import { AppError } from '../utils/AppError.js';
 import type { EditMessageInput, ReactionInput } from '../validators/chat.schemas.js';
 
@@ -82,21 +81,6 @@ export const deleteMessage: RequestHandler = async (req, res) => {
     return;
   }
 
-  const fileKey = message.media?.key;
-  message.deletedAt = new Date();
-  message.text = '';
-  message.media = null;
-  message.set('reactions', []);
-  await message.save();
-
-  await Promise.all([
-    fileKey ? deleteMedia(fileKey) : null, // the photo / voice note is removed from the server
-    Message.updateMany({ 'replyTo.messageId': message._id }, { $set: { 'replyTo.deleted': true, 'replyTo.preview': '' } }),
-    Conversation.updateOne(
-      { _id: conversation._id, 'lastMessage.messageId': message._id },
-      { $set: { 'lastMessage.preview': DELETED_PREVIEW } },
-    ),
-  ]);
-  emitMessageUpdated(conversation, message);
+  await unsendMessage(conversation, message);
   res.json({ success: true, data: { message: toPublicMessage(message) } });
 };

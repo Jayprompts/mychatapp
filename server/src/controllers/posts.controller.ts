@@ -61,7 +61,7 @@ export const feed: RequestHandler = async (req, res) => {
     ...(sort === 'trending' ? { publishedAt: { $gte: new Date(Date.now() - TRENDING_WINDOW_MS) } } : {}),
   };
   const order: Record<string, SortOrder> =
-    sort === 'liked' ? { likeCount: -1, publishedAt: -1 } : sort === 'trending' ? { engagement: -1, publishedAt: -1 } : { publishedAt: -1, _id: -1 };
+    sort === 'liked' ? { likeCount: -1, publishedAt: -1 } : sort === 'trending' ? { engagement: -1, publishedAt: -1 } : { featured: -1, publishedAt: -1, _id: -1 }; // featured posts are pinned to the top of Latest
 
   const found = await Post.find(filter).sort(order).skip((n - 1) * PAGE_SIZE).limit(PAGE_SIZE + 1);
   const { items, hasMore } = page(found);

@@ -31,5 +31,7 @@ export function describe(n: AppNotification): { who: string; action: string; quo
       return { who, action: `approved your request to join ${n.title} 🎉`, quote: null, href: place };
     case 'group_added':
       return { who, action: `added you to ${n.title || 'a group'}`, quote: null, href: place };
+    case 'moderation': // from "the Grove team" — the moderator is never named
+      return { who: 'The Grove team', action: n.title, quote: n.preview || null, href: n.postId ? `/blog/${n.postId}` : '/notifications' };
   }
 }

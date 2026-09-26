@@ -1,5 +1,6 @@
 import { Link } from 'react-router';
-import { AtSign, Heart, MessageCircle, UserPlus, Users, type LucideIcon } from 'lucide-react';
+import { AtSign, Heart, MessageCircle, ShieldAlert, UserPlus, Users, type LucideIcon } from 'lucide-react';
+import { LogoMark } from '@/components/ui/Logo';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/cn';
 import { formatAgo } from '@/lib/time';
@@ -17,6 +18,7 @@ const BADGES: Record<NotificationType, { icon: LucideIcon; className: string }> 
   community_request: { icon: Users, className: 'bg-[#FFF6E0] text-[#B68A00]' },
   request_approved: { icon: Users, className: 'bg-[#FFF6E0] text-[#B68A00]' },
   group_added: { icon: UserPlus, className: 'bg-[#EEF3FF] text-primary' },
+  moderation: { icon: ShieldAlert, className: 'bg-[#FFF6E0] text-[#B68A00]' },
 };
 
 // One row, per the design: avatar with a type badge, "Bob and 2 others liked your post…", time, unread dot.
@@ -36,7 +38,7 @@ export function NotificationItem({ n, onOpen }: { n: AppNotification; onOpen?: (
       className={cn('flex items-start gap-3 border-b border-border px-4 py-3 transition-colors last:border-0 hover:bg-bg', !n.read && 'bg-primary/3')}
     >
       <span className="relative shrink-0">
-        <Avatar name={actor?.displayName ?? '?'} src={actor?.avatarUrl ?? null} size={40} />
+        {n.type === 'moderation' ? <LogoMark size={40} /> : <Avatar name={actor?.displayName ?? '?'} src={actor?.avatarUrl ?? null} size={40} />}
         <span className={cn('absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full ring-2 ring-card', className)}>
           <Icon size={11} strokeWidth={2.4} />
         </span>

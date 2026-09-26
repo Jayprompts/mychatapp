@@ -39,10 +39,13 @@ export function describeAudit(e: AuditEntry): string {
       return `unfeatured the community ${t}`;
     case 'community.delete':
       return `deleted the community ${t}${reason}`;
-    case 'community.member_role':
-      return `changed a member's role in ${t}`;
+    case 'community.member_role': {
+      const cap = (v: unknown) => (typeof v === 'string' ? v[0].toUpperCase() + v.slice(1) : '?');
+      const who = typeof e.details?.user === 'string' ? `${e.details.user}'s` : "a member's";
+      return e.details?.to === 'owner' ? `made ${String(e.details.user ?? 'a member')} the owner of ${t}` : `changed ${who} role in ${t}: ${cap(e.details?.from)} → ${cap(e.details?.to)}`;
+    }
     case 'community.member_remove':
-      return `removed a member from ${t}`;
+      return `removed ${typeof e.details?.user === 'string' ? e.details.user : 'a member'} from ${t}`;
     case 'report.dismiss':
       return `dismissed a report about ${t}`;
     default:

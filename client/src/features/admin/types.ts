@@ -1,3 +1,6 @@
+import type { UserSummary } from '@/features/chat/types';
+import type { CommunityTheme } from '@/features/communities/types';
+import type { PostCoverTheme, PostTag } from '@/features/blog/types';
 import type { Role } from '@/features/auth/types';
 
 export type AdminUser = {
@@ -44,3 +47,61 @@ export const ROLE_LABELS: Record<Role, string> = {
   community_mgr: 'Community Manager',
   user: 'User',
 };
+
+// ── Moderation ──
+
+export type ReportTargetType = 'post' | 'comment' | 'message' | 'user';
+export type ReportRow = {
+  targetType: ReportTargetType;
+  targetId: string;
+  count: number;
+  reasons: { reason: string; count: number }[];
+  latest: string;
+  snapshot: string;
+  author: UserSummary | null;
+  resolution: 'dismissed' | 'removed' | 'warned' | 'banned' | null;
+  resolvedAt: string | null;
+};
+export type ReportAuthor = UserSummary & { email: string; role: Role; status: string; statusReason: string; createdAt: string; bio: string };
+export type ReportContent =
+  | { kind: 'post'; id: string; title: string; body: string; coverUrl: string | null; coverTheme: PostCoverTheme; status: string; publishedAt: string | null; url: string }
+  | { kind: 'comment'; id: string; body: string; createdAt: string; post: { id: string; title: string } | null; parent: { author: ReportAuthor | null; body: string } | null; url: string }
+  | { kind: 'message'; id: string; conversation: { id: string; type: string; name: string } | null; context: { id: string; sender: string; text: string; createdAt: string; isTarget: boolean }[] }
+  | { kind: 'user'; id: string; posts: number };
+export type ReportDetail = {
+  type: ReportTargetType;
+  id: string;
+  exists: boolean;
+  label: string;
+  author: ReportAuthor | null;
+  content: ReportContent | null;
+  priorAboutAuthor: number;
+  reports: { id: string; reporter: UserSummary | null; reason: string; details: string; snapshot: string; status: string; resolution: string | null; note: string; createdAt: string }[];
+};
+
+export type AdminPost = {
+  id: string;
+  title: string;
+  tag: PostTag;
+  coverUrl: string | null;
+  coverTheme: PostCoverTheme;
+  author: UserSummary | null;
+  publishedAt: string;
+  likeCount: number;
+  commentCount: number;
+  featured: boolean;
+};
+export type AdminCommunity = {
+  id: string;
+  name: string;
+  icon: string;
+  theme: CommunityTheme;
+  category: string;
+  visibility: 'public' | 'private';
+  memberCount: number;
+  featured: boolean;
+  createdAt: string;
+  owner: UserSummary | null;
+  admins: number;
+};
+export type CommunityMember = { user: UserSummary; role: 'owner' | 'admin' | 'member'; joinedAt: string };

@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { Copy, Pencil, Reply, Trash2 } from 'lucide-react';
+import { Copy, Flag, Pencil, Reply, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/cn';
 import { EDIT_WINDOW_MS, QUICK_REACTIONS } from '../preview';
 import type { Message } from '../types';
@@ -16,6 +16,7 @@ type Props = {
   onCopy: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onReport: () => void;
 };
 
 const isPhone = () => window.matchMedia('(max-width: 639px), (pointer: coarse)').matches;
@@ -81,6 +82,7 @@ export function MessageActionMenu(props: Props) {
         {canCopy && <Item icon={<Copy size={18} />} label="Copy text" onClick={run(props.onCopy)} />}
         {canEdit && <Item icon={<Pencil size={18} />} label="Edit" onClick={run(props.onEdit)} />}
         {mine && <Item icon={<Trash2 size={18} />} label="Unsend" danger onClick={run(props.onDelete)} />}
+        {!mine && <Item icon={<Flag size={18} />} label="Report" danger onClick={run(props.onReport)} />}
       </ul>
     </>
   );

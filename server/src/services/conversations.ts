@@ -1,6 +1,7 @@
 import { Conversation, type ConversationDoc } from '../models/Conversation.js';
 import { Types } from 'mongoose';
-import { Message, previewFor, toPublicMessage, type MessageDoc, type SystemEventKind } from '../models/Message.js';
+import { DELETED_PREVIEW, Message, previewFor, toPublicMessage, type MessageDoc, type SystemEventKind } from '../models/Message.js';
+import { deleteMedia } from './media.js';
 import type { UserDoc } from '../models/User.js';
 import { emitToUsers } from '../sockets/index.js';
 import { AppError } from '../utils/AppError.js';
@@ -130,4 +131,26 @@ export async function buildReplySnapshot(conversationId: Types.ObjectId, replyTo
 // Push an edited / unsent / reacted-to message to everyone in the conversation.
 export function emitMessageUpdated(conversation: ConversationDoc, message: MessageDoc) {
   emitToUsers(memberIds(conversation), 'message:updated', { message: toPublicMessage(message) });
+}
+
+// Unsend: the text and file go, a "message deleted" placeholder stays, quotes of it and the chat-list
+// preview update, and everyone sees it live. Used by "Unsend" and by moderators removing a message.
+export async function unsendMessage(conversation: ConversationDoc, message: MessageDoc) {
+  if (message.deletedAt) return;
+  const fileKey = message.media?.key;
+  message.deletedAt = new Date();
+  message.text = '';
+  message.media = null;
+  message.set('reactions', []);
+  await message.save();
+
+  await Promise.all([
+    fileKey ? deleteMedia(fileKey) : null, // the photo / voice note is removed from the server
+    Message.updateMany({ 'replyTo.messageId': message._id }, { $set: { 'replyTo.deleted': true, 'replyTo.preview': '' } }),
+    Conversation.updateOne(
+      { _id: conversation._id, 'lastMessage.messageId': message._id },
+      { $set: { 'lastMessage.preview': DELETED_PREVIEW } },
+    ),
+  ]);
+  emitMessageUpdated(conversation, message);
 }

@@ -51,8 +51,9 @@ async function deliver(input: NotifyInput) {
 
     const recipient = await User.findById(recipientId).select('status notificationPrefs');
     if (!recipient || recipient.status !== 'active') return;
-    if (recipient.notificationPrefs?.[NOTIFICATION_CATEGORY[input.type]] === false) return;
-    if (await Block.exists({ $or: [{ blocker: recipientId, blocked: actorId }, { blocker: actorId, blocked: recipientId }] })) return;
+    const category = NOTIFICATION_CATEGORY[input.type];
+    if (category !== 'always' && recipient.notificationPrefs?.[category] === false) return;
+    if (input.type !== 'moderation' && await Block.exists({ $or: [{ blocker: recipientId, blocked: actorId }, { blocker: actorId, blocked: recipientId }] })) return;
 
     const fields = {
       post: input.post ?? null,
@@ -124,12 +125,12 @@ export async function buildNotificationViews(docs: NotificationDoc[]) {
   return docs.map((d) => ({
     id: d._id.toString(),
     type: d.type,
-    actors: d.actors
+    actors: (d.type === 'moderation' ? [] : d.actors) // moderators stay anonymous: it's "the Grove team"
       .slice(0, 3)
       .map((a) => byId.get(str(a)))
       .filter((u): u is UserDoc => !!u)
       .map((u) => toUserSummary(u, isOnline(u._id.toString()))),
-    actorCount: d.actors.length,
+    actorCount: d.type === 'moderation' ? 0 : d.actors.length,
     postId: d.post?.toString() ?? null,
     commentId: d.comment?.toString() ?? null,
     communityId: d.community?.toString() ?? null,

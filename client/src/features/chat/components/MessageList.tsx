@@ -11,6 +11,8 @@ import { formatDayLabel, isSameDay } from '@/lib/time';
 import { useDeleteMessage, useMessages, useReact, useSendMedia, useSendMessage } from '../api';
 import { formatSystemEvent } from '../preview';
 import type { Conversation, Message } from '../types';
+import { ReportDialog } from '@/features/blog/components/ReportDialog';
+import type { ReportTarget } from '@/features/blog/types';
 import { MessageActionMenu } from './MessageActionMenu';
 import { MessageBubble, type BubblePosition } from './MessageBubble';
 import { ReactionsSheet } from './ReactionsSheet';
@@ -36,6 +38,7 @@ export function MessageList({ conversation, myId, typingUserIds, onReply, onEdit
   const [reactionsFor, setReactionsFor] = useState<string | null>(null); // message id
   const [deleting, setDeleting] = useState<Message | null>(null);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
+  const [reporting, setReporting] = useState<ReportTarget | null>(null);
   const react = useReact(conversation.id);
   const unsend = useDeleteMessage(conversation.id);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -276,8 +279,10 @@ export function MessageList({ conversation, myId, typingUserIds, onReply, onEdit
           onCopy={() => void copy(actionsFor.message)}
           onEdit={() => onEdit(actionsFor.message)}
           onDelete={() => setDeleting(actionsFor.message)}
+          onReport={() => setReporting({ type: 'message', id: actionsFor.message.id })}
         />
       )}
+      <ReportDialog target={reporting} onClose={() => setReporting(null)} />
 
       <ReactionsSheet
         message={reactionsFor ? (byId.get(reactionsFor) ?? null) : null}

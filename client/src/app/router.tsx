@@ -14,7 +14,10 @@ import { InvitePage } from '@/pages/InvitePage';
 import { AdminLayout } from '@/features/admin/components/AdminLayout';
 import { RequireStaff } from '@/features/admin/components/RequireStaff';
 import { AuditPage } from '@/pages/admin/AuditPage';
+import { AdminCommunitiesPage } from '@/pages/admin/CommunitiesAdminPage';
 import { DashboardPage } from '@/pages/admin/DashboardPage';
+import { PostsPage } from '@/pages/admin/PostsPage';
+import { ReportsPage } from '@/pages/admin/ReportsPage';
 import { RolesPage } from '@/pages/admin/RolesPage';
 import { UsersPage } from '@/pages/admin/UsersPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
@@ -58,6 +61,8 @@ export const router = createBrowserRouter([
                 children: [
                   { index: true, element: <DashboardPage /> },
                   { path: 'users', element: <UsersPage /> },
+                  { element: <RequireStaff roles={['content_mod']} />, children: [{ path: 'reports', element: <ReportsPage /> }, { path: 'posts', element: <PostsPage /> }] },
+                  { element: <RequireStaff roles={['community_mgr']} />, children: [{ path: 'communities', element: <AdminCommunitiesPage /> }] },
                   { element: <RequireStaff roles={['super_admin']} />, children: [{ path: 'roles', element: <RolesPage /> }, { path: 'audit', element: <AuditPage /> }] },
                 ],
               },

@@ -4,12 +4,14 @@ import { Skeleton } from '@/components/ui/Skeleton';
 import { useAdminStats } from '@/features/admin/api';
 import { describeAudit } from '@/features/admin/audit';
 import { PageTitle } from '@/features/admin/components/ui';
+import { useMe } from '@/features/auth/api';
 import { formatAgo } from '@/lib/time';
 import { cn } from '@/lib/cn';
 
-function StatCard({ label, value, icon: Icon, accent, note, delta }: { label: string; value: number; icon: LucideIcon; accent: string; note: string; delta?: number }) {
+function StatCard({ label, value, icon: Icon, accent, note, delta, to }: { label: string; value: number; icon: LucideIcon; accent: string; note: string; delta?: number; to?: string }) {
+  const Box = to ? Link : 'div';
   return (
-    <div className="flex flex-col gap-3 rounded-[10px] border border-border bg-card p-4 shadow-[0_1px_4px_rgba(0,0,0,0.05)]">
+    <Box to={to!} className={cn('flex flex-col gap-3 rounded-[10px] border border-border bg-card p-4 shadow-[0_1px_4px_rgba(0,0,0,0.05)]', to && 'transition-colors hover:border-primary/40')}>
       <div className="flex items-start justify-between">
         <div>
           <p className="text-xs font-semibold tracking-[0.05em] text-text-secondary uppercase">{label}</p>
@@ -29,13 +31,15 @@ function StatCard({ label, value, icon: Icon, accent, note, delta }: { label: st
         )}
         {note}
       </p>
-    </div>
+    </Box>
   );
 }
 
 // /admin — the numbers at a glance + what the admin team did recently.
 export function DashboardPage() {
   const { data: s } = useAdminStats();
+  const { data: me } = useMe();
+  const canModerate = me?.role === 'super_admin' || me?.role === 'content_mod';
   return (
     <div className="mx-auto max-w-6xl">
       <PageTitle title="Dashboard" description="How Grove is doing this week." />
@@ -44,7 +48,7 @@ export function DashboardPage() {
           <StatCard label="Total users" value={s.users.total} icon={Users} accent="gradient-brand" delta={s.users.newThisWeek - s.users.newLastWeek} note={`${s.users.newThisWeek} joined this week`} />
           <StatCard label="Active communities" value={s.communities.active} icon={UsersRound} accent="bg-community" note={`with messages this week · ${s.communities.total} in total`} />
           <StatCard label="Posts this week" value={s.posts.thisWeek} icon={MessageSquare} accent="bg-primary" delta={s.posts.thisWeek - s.posts.lastWeek} note="vs last week" />
-          <StatCard label="Pending reports" value={s.reports.open} icon={Flag} accent={s.reports.open ? 'bg-error' : 'bg-success'} note={s.reports.open ? 'waiting for a moderator' : 'all clear'} />
+          <StatCard label="Pending reports" value={s.reports.open} icon={Flag} accent={s.reports.open ? 'bg-error' : 'bg-success'} note={s.reports.open ? 'waiting for a moderator' : 'all clear'} to={canModerate ? '/admin/reports' : undefined} />
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router';
-import { ArrowLeft, Menu, ScrollText, Settings, ShieldCheck, UserCog, Users, LayoutDashboard, LogOut, PanelLeftClose, PanelLeftOpen, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, Flag, LayoutDashboard, LogOut, Menu, Newspaper, PanelLeftClose, PanelLeftOpen, ScrollText, Settings, ShieldCheck, UserCog, Users, UsersRound, type LucideIcon } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LogoMark } from '@/components/ui/Logo';
 import { useLogout, useMe } from '@/features/auth/api';
 import type { Role } from '@/features/auth/types';
 import { cn } from '@/lib/cn';
+import { useOpenReportCount } from '../api';
 import { AdminRoleBadge } from './ui';
 
 type Item = { to: string; label: string; icon: LucideIcon; roles?: Role[]; end?: boolean };
@@ -14,12 +15,18 @@ type Item = { to: string; label: string; icon: LucideIcon; roles?: Role[]; end?:
 const NAV: Item[] = [
   { to: '/admin', label: 'Dashboard', icon: LayoutDashboard, end: true },
   { to: '/admin/users', label: 'Users', icon: Users },
+  { to: '/admin/reports', label: 'Reports', icon: Flag, roles: ['content_mod'] },
+  { to: '/admin/posts', label: 'Blog posts', icon: Newspaper, roles: ['content_mod'] },
+  { to: '/admin/communities', label: 'Communities', icon: UsersRound, roles: ['community_mgr'] },
   { to: '/admin/roles', label: 'Role management', icon: UserCog, roles: ['super_admin'] },
   { to: '/admin/audit', label: 'Audit log', icon: ScrollText, roles: ['super_admin'] },
 ];
 const TITLES: Record<string, string> = {
   '/admin': 'Dashboard',
   '/admin/users': 'User management',
+  '/admin/reports': 'Moderation queue',
+  '/admin/posts': 'Blog management',
+  '/admin/communities': 'Community management',
   '/admin/roles': 'Role assignment',
   '/admin/audit': 'Audit log',
 };
@@ -33,6 +40,8 @@ export function AdminLayout() {
   const [drawerOn, setDrawerOn] = useState<string | null>(null); // the page the drawer was opened on
   const [confirmOut, setConfirmOut] = useState(false);
   const logout = useLogout();
+  const canModerate = me?.role === 'super_admin' || me?.role === 'content_mod';
+  const { data: openReports = 0 } = useOpenReportCount(canModerate);
   if (!me) return null;
   const items = NAV.filter((i) => !i.roles || i.roles.includes(me.role) || me.role === 'super_admin');
   const drawer = drawerOn === pathname; // navigating closes it
@@ -71,8 +80,14 @@ export function AdminLayout() {
               )
             }
           >
-            <Icon size={17} className="shrink-0" />
-            {!mini && label}
+            <span className="relative shrink-0">
+              <Icon size={17} />
+              {mini && to === '/admin/reports' && openReports > 0 && <span className="absolute -top-1 -right-1 size-2 rounded-full bg-error" />}
+            </span>
+            {!mini && <span className="flex-1">{label}</span>}
+            {!mini && to === '/admin/reports' && openReports > 0 && (
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">{openReports > 99 ? '99+' : openReports}</span>
+            )}
           </NavLink>
         ))}
       </nav>

@@ -37,7 +37,7 @@ const postSchema = new Schema(
   { timestamps: true },
 );
 
-postSchema.index({ status: 1, publishedAt: -1 }); // Latest
+postSchema.index({ status: 1, featured: -1, publishedAt: -1 }); // Latest (featured pinned first)
 postSchema.index({ status: 1, likeCount: -1, publishedAt: -1 }); // Most liked
 postSchema.index({ status: 1, tag: 1, publishedAt: -1 });
 postSchema.index({ author: 1, updatedAt: -1 }); // My posts / drafts

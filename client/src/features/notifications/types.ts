@@ -9,7 +9,8 @@ export type NotificationType =
   | 'community_join'
   | 'community_request'
   | 'request_approved'
-  | 'group_added';
+  | 'group_added'
+  | 'moderation';
 
 // ("AppNotification" so it doesn't clash with the browser's own Notification.)
 export type AppNotification = {

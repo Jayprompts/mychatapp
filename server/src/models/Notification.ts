@@ -10,11 +10,12 @@ export const NOTIFICATION_TYPES = [
   'community_request', // someone asked to join (private)    (grouped)
   'request_approved', // your request to join was approved
   'group_added', // someone added you to a group / community chat
+  'moderation', // from the Grove team: your content was removed / a warning (always sent; moderator not shown)
 ] as const;
 export type NotificationType = (typeof NOTIFICATION_TYPES)[number];
 
 // Which setting (Settings ▸ Notifications) each kind belongs to.
-export const NOTIFICATION_CATEGORY: Record<NotificationType, 'messages' | 'social' | 'communities'> = {
+export const NOTIFICATION_CATEGORY: Record<NotificationType, 'messages' | 'social' | 'communities' | 'always'> = {
   post_like: 'social',
   post_comment: 'social',
   comment_reply: 'social',
@@ -24,6 +25,7 @@ export const NOTIFICATION_CATEGORY: Record<NotificationType, 'messages' | 'socia
   community_request: 'communities',
   request_approved: 'communities',
   group_added: 'messages',
+  moderation: 'always',
 };
 
 const notificationSchema = new Schema(
