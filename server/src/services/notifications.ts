@@ -4,6 +4,7 @@ import { NOTIFICATION_CATEGORY, Notification, type NotificationDoc, type Notific
 import { USER_SUMMARY_FIELDS, User, toUserSummary, type UserDoc } from '../models/User.js';
 import { emitToUsers } from '../sockets/index.js';
 import { isOnline } from './presence.js';
+import { pushForNotification, pushTo } from './push.js';
 
 type Id = Types.ObjectId | string;
 const str = (id: Id) => id.toString();
@@ -78,6 +79,7 @@ async function deliver(input: NotifyInput) {
 
     const [view] = await buildNotificationViews([doc]);
     emitToUsers([recipientId], 'notification:new', { notification: view, unreadCount: await unreadCount(recipientId) });
+    void pushTo(recipientId, pushForNotification(view)); // only if Grove isn't open anywhere
   } catch (err) {
     console.error('notify failed:', err);
   }

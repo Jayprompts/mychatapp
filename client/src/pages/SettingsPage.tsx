@@ -12,6 +12,7 @@ import { oauthConnectUrl, useAuthProviders, useLogout, useLogoutAll, useMe } fro
 import { GitHubIcon, GoogleIcon } from '@/features/auth/components/SocialButtons';
 import { useUpdateNotificationPrefs } from '@/features/notifications/api';
 import { desktopEnabled, desktopPermission, disableDesktop, enableDesktop } from '@/lib/desktopNotify';
+import { needsHomeScreen, pushSupported } from '@/lib/push';
 import type { OAuthProvider, User } from '@/features/auth/types';
 import { useBlockedUsers, useChangeEmail, useChangePassword, useDeleteAccount, useSetBlocked, useUnlinkProvider, useUpdatePrivacy } from '@/features/profile/api';
 import { ApiError, errorMessage } from '@/lib/api';
@@ -207,13 +208,17 @@ function NotificationSettings({ me }: { me: User }) {
           setDesktop(granted);
           if (!granted) toast('Your browser blocked notifications — allow them in its site settings', 'error', 4500);
         }}
-        label="Desktop notifications (this device)"
+        label="Notifications on this device"
         description={
-          permission === 'unsupported'
-            ? "This browser doesn't support desktop notifications."
-            : permission === 'denied'
-              ? 'Blocked in this browser — allow notifications for this site in its settings, then come back.'
-              : 'Alerts when Grove is open in another tab or window.'
+          needsHomeScreen()
+            ? 'On iPhone and iPad: tap Share → “Add to Home Screen”, open Grove from there, then turn this on.'
+            : permission === 'unsupported'
+              ? "This browser doesn't support notifications."
+              : permission === 'denied'
+                ? 'Blocked in this browser — allow notifications for this site in its settings, then come back.'
+                : pushSupported()
+                  ? 'Alerts when Grove is in another tab — or closed.'
+                  : 'Alerts when Grove is open in another tab or window.'
         }
       />
     </div>

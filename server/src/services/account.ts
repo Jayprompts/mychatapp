@@ -7,6 +7,7 @@ import { Notification } from '../models/Notification.js';
 import { Conversation } from '../models/Conversation.js';
 import { Post } from '../models/Post.js';
 import { PostLike } from '../models/PostLike.js';
+import { PushSubscription } from '../models/PushSubscription.js';
 import { User, type UserDoc } from '../models/User.js';
 import { disconnectUser, emitToUsers } from '../sockets/index.js';
 import { removeComment } from './comments.js';
@@ -49,6 +50,7 @@ export async function deleteAccount(user: UserDoc) {
     Bookmark.deleteMany({ user: id }),
     Block.deleteMany({ $or: [{ blocker: id }, { blocked: id }] }),
     Notification.deleteMany({ recipient: id }),
+    PushSubscription.deleteMany({ user: id }),
     Notification.updateMany({ actors: id }, { $pull: { actors: id } }), // "Ana and 2 others" → "2 others"
   ]);
   await Notification.deleteMany({ actors: { $size: 0 } });

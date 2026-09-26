@@ -2,6 +2,7 @@ import { Conversation, type ConversationDoc } from '../models/Conversation.js';
 import { Types } from 'mongoose';
 import { DELETED_PREVIEW, Message, previewFor, toPublicMessage, type MessageDoc, type SystemEventKind } from '../models/Message.js';
 import { deleteMedia } from './media.js';
+import { pushNewMessage } from './push.js';
 import type { UserDoc } from '../models/User.js';
 import { emitToUsers } from '../sockets/index.js';
 import { AppError } from '../utils/AppError.js';
@@ -55,6 +56,7 @@ export async function publishNewMessage(conversation: ConversationDoc, message: 
   const payload = toPublicMessage(message);
   const everyone = memberIds(conversation);
   emitToUsers(everyone, 'message:new', { message: payload }); // includes my other tabs/devices
+  void pushNewMessage(conversation, message); // and phones/computers where Grove is closed
   emitToUsers(everyone, 'conversation:read', {
     conversationId: payload.conversationId,
     userId: message.sender.toString(),

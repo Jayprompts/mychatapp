@@ -16,6 +16,11 @@ const envSchema = z.object({
   GITHUB_CLIENT_SECRET: z.string().optional(),
   // Tests only: send the OAuth flow to a local fake provider instead of Google/GitHub. Ignored in production.
   OAUTH_MOCK_URL: z.url().optional(),
+  // Web Push (notifications when Grove is closed). Generate once with: npx web-push generate-vapid-keys
+  // Keep them forever — changing them silently breaks every device's subscription.
+  VAPID_PUBLIC_KEY: z.string().optional(),
+  VAPID_PRIVATE_KEY: z.string().optional(),
+  VAPID_SUBJECT: z.string().default('mailto:admin@mypromptspace.cloud'), // how push services can reach you
 });
 
 const parsed = envSchema.safeParse(process.env);

@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { api, ApiError, setUnauthorizedHandler } from '@/lib/api';
+import { unsubscribePush } from '@/lib/push';
 import { queryClient } from '@/lib/queryClient';
 import { createStore, useStore } from '@/lib/store';
 import type { OAuthProvider, PendingOAuth, User } from './types';
@@ -90,7 +91,8 @@ export function endSession(qc: QueryClient) {
 function useSignOut(path: '/auth/logout' | '/auth/logout-all') {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => api<{ message: string }>(path, { method: 'POST' }),
+    // Stop this device's push notifications first (needs the session), then sign out.
+    mutationFn: () => unsubscribePush().then(() => api<{ message: string }>(path, { method: 'POST' })),
     onSuccess: () => endSession(qc), // guards redirect to /welcome
   });
 }

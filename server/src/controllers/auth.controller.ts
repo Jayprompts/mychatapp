@@ -1,4 +1,5 @@
 import type { Request, RequestHandler, Response } from 'express';
+import { PushSubscription } from '../models/PushSubscription.js';
 import { User, toPublicUser, type UserDoc } from '../models/User.js';
 import { AppError } from '../utils/AppError.js';
 import { hashPassword, verifyPassword } from '../utils/password.js';
@@ -73,6 +74,7 @@ export const logout: RequestHandler = (_req, res) => {
 export const logoutAll: RequestHandler = async (req, res) => {
   const userId = authUser(req)._id;
   await User.updateOne({ _id: userId }, { $inc: { tokenVersion: 1 } });
+  await PushSubscription.deleteMany({ user: userId }); // and no more notifications to those devices
   disconnectUser(userId.toString()); // live sockets on other devices drop immediately
   res.clearCookie(AUTH_COOKIE, clearCookieOptions);
   res.json({ success: true, data: { message: 'Logged out on all devices' } });

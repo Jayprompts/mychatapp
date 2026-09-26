@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Link, NavLink, Outlet, useLocation, useMatch } from 'react-router';
+import { useEffect, useRef } from 'react';
+import { Link, NavLink, Outlet, useLocation, useMatch, useNavigate } from 'react-router';
 import { MessageCircle, Newspaper, ShieldCheck, User, Users, type LucideIcon } from 'lucide-react';
 import { ConnectionBanner } from '@/components/layout/ConnectionBanner';
 import { Avatar } from '@/components/ui/Avatar';
@@ -14,6 +14,8 @@ import { closeSearchIfMoved, openSearch } from '@/features/search/api';
 import { SearchButton } from '@/features/search/SearchButton';
 import { SearchOverlay } from '@/features/search/SearchOverlay';
 import { cn } from '@/lib/cn';
+import { desktopEnabled } from '@/lib/desktopNotify';
+import { registerServiceWorker, subscribePush } from '@/lib/push';
 
 type NavItem = { to: string; label: string; icon: LucideIcon; badge?: number };
 
@@ -38,6 +40,25 @@ export function AppShell() {
   }, []);
   const { pathname, search } = useLocation();
   useEffect(() => closeSearchIfMoved(), [pathname, search]);
+
+  // Push notifications: keep this device signed up for whoever is signed in here (if they turned
+  // notifications on), and follow a tapped notification without reloading the app.
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!user?.id) return;
+    registerServiceWorker()?.catch(() => {});
+    if (desktopEnabled()) void subscribePush(desktopEnabled).catch(() => {});
+  }, [user?.id]);
+  const navigateRef = useRef(navigate);
+  useEffect(() => void (navigateRef.current = navigate), [navigate]);
+  useEffect(() => {
+    // Attached once: a listener swapped out mid-flight would miss the tap.
+    const onMessage = (e: MessageEvent) => {
+      if (e.data?.type === 'grove:navigate' && typeof e.data.url === 'string' && e.data.url.startsWith('/')) navigateRef.current(e.data.url);
+    };
+    navigator.serviceWorker?.addEventListener('message', onMessage);
+    return () => navigator.serviceWorker?.removeEventListener('message', onMessage);
+  }, []);
 
   const { data: conversations } = useConversations();
   const unreadOf = (community: boolean) =>

@@ -1,5 +1,7 @@
-// Desktop (browser) notifications — shown only while Grove is open in a background tab, and only if the
-// person switched them on here (it's a per-device choice) and the browser allows it.
+// Notifications on this device — a per-device choice, and only if the browser allows it:
+//   Grove open in a background tab → shown from here (showDesktop)
+//   Grove closed                   → Web Push, shown by the service worker (lib/push.ts, public/sw.js)
+import { subscribePush, unsubscribePush } from './push';
 
 const KEY = 'grove.desktopNotifications';
 const DISMISSED = 'grove.desktopPromptDismissed';
@@ -31,9 +33,13 @@ export async function enableDesktop(): Promise<boolean> {
   const result = Notification.permission === 'granted' ? 'granted' : await Notification.requestPermission();
   write(KEY, result === 'granted' ? 'on' : null);
   write(DISMISSED, '1');
+  if (result === 'granted') void subscribePush(desktopEnabled).catch(() => {}); // …and while Grove is closed
   return result === 'granted';
 }
-export const disableDesktop = () => write(KEY, null);
+export function disableDesktop() {
+  write(KEY, null);
+  void unsubscribePush();
+}
 
 // The "Never miss a message" card shows until you answer it once.
 export const promptDismissed = () => read(DISMISSED) === '1';
