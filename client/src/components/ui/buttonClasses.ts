@@ -11,10 +11,10 @@ const base =
 
 const variants: Record<ButtonVariant, string> = {
   primary: 'gradient-brand text-white shadow-brand hover:opacity-95',
-  secondary: 'border-[1.5px] border-primary/20 bg-primary/6 text-primary hover:bg-primary/10',
+  secondary: 'border-[1.5px] border-primary/20 bg-primary/6 text-primary-ink hover:bg-primary/10',
   outline: 'border-[1.5px] border-border bg-card text-text-primary hover:bg-bg',
   ghost: 'text-primary hover:bg-primary/8',
-  danger: 'bg-error text-white hover:opacity-90',
+  danger: 'bg-error-solid text-white hover:opacity-90',
   'danger-outline': 'border-[1.5px] border-error/30 text-error hover:bg-error/6',
 };
 

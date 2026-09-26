@@ -64,7 +64,7 @@ export function VoiceBubble({ message, mine, radiusClass }: Props) {
     setPositionMs(fraction * durationMs);
   };
 
-  const played = mine ? 'bg-white' : 'bg-primary';
+  const played = mine ? 'bg-white' : 'bg-primary-solid';
   const unplayed = mine ? 'bg-white/45' : 'bg-text-secondary/35';
 
   return (
@@ -137,7 +137,7 @@ export function VoiceBubble({ message, mine, radiusClass }: Props) {
           ))}
           {/* scrubber dot */}
           <span
-            className={cn('pointer-events-none absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full shadow', mine ? 'bg-white' : 'bg-primary')}
+            className={cn('pointer-events-none absolute top-1/2 size-3 -translate-x-1/2 -translate-y-1/2 rounded-full shadow', mine ? 'bg-white' : 'bg-primary-solid')}
             style={{ left: `${progress * 100}%` }}
           />
         </div>

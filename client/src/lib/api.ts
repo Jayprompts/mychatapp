@@ -25,6 +25,11 @@ type ApiOptions = {
   signal?: AbortSignal;
 };
 
+// Called when a signed-in request comes back 401 (session expired, or ended elsewhere) — the auth
+// feature re-checks the session and shows "Session expired". /auth/* answers 401 by design, so skip it.
+let onUnauthorized: (() => void) | null = null;
+export const setUnauthorizedHandler = (fn: () => void) => void (onUnauthorized = fn);
+
 export async function api<T>(path: string, { method = 'GET', body, signal }: ApiOptions = {}): Promise<T> {
   let res: Response;
   try {
@@ -42,6 +47,7 @@ export async function api<T>(path: string, { method = 'GET', body, signal }: Api
 
   const json = (await res.json().catch(() => null)) as Envelope<T> | null;
 
+  if (res.status === 401 && !path.startsWith('/auth/')) onUnauthorized?.();
   if (!json) throw new ApiError(res.status, `Unexpected response from server (${res.status})`);
   if (!json.success) throw new ApiError(res.status, json.error.message, json.error.details);
   return json.data;
@@ -63,6 +69,7 @@ export function upload<T>(path: string, form: FormData, onProgress?: (fraction: 
     if (onProgress) xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
     xhr.onerror = () => reject(new ApiError(0, "Can't reach the server. Check your connection and try again."));
     xhr.onload = () => {
+      if (xhr.status === 401) onUnauthorized?.();
       const json = xhr.response as Envelope<T> | null;
       if (!json) return reject(new ApiError(xhr.status, `Unexpected response from server (${xhr.status})`));
       if (!json.success) return reject(new ApiError(xhr.status, json.error.message, json.error.details));

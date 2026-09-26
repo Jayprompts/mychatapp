@@ -90,7 +90,7 @@ export type Message = {
   editedAt: string | null;
   deletedAt: string | null;
   /** Client-only: optimistic messages that haven't been confirmed by the server yet. */
-  status?: 'sending' | 'failed';
+  status?: 'sending' | 'failed' | 'queued'; // queued = failed because we were offline; re-sent on reconnect
   /** Client-only: the file on this device (instant preview, upload progress, retry). */
   local?: { url: string; blob?: Blob; progress?: number };
 };

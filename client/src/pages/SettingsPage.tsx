@@ -291,7 +291,7 @@ function DangerZone() {
         <button type="button" onClick={() => setConfirmLogout(true)} className="flex items-center gap-2.5 rounded-xl border-[1.5px] border-error/20 bg-error/6 px-4 py-3 text-left text-[15px] font-medium text-error hover:bg-error/10">
           <LogOut size={18} /> Log out
         </button>
-        <button type="button" onClick={() => setDeleting(true)} className="flex items-center gap-2.5 rounded-xl bg-error px-4 py-3 text-left text-[15px] font-semibold text-white shadow-[0_4px_12px_rgba(250,56,62,0.3)] hover:opacity-95">
+        <button type="button" onClick={() => setDeleting(true)} className="flex items-center gap-2.5 rounded-xl bg-error-solid px-4 py-3 text-left text-[15px] font-semibold text-white shadow-[0_4px_12px_rgba(250,56,62,0.3)] hover:opacity-95">
           <Trash2 size={18} /> Delete account
         </button>
       </div>

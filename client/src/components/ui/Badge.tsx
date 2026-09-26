@@ -12,7 +12,7 @@ export function Badge({ children, className }: { children: ReactNode; className?
 
 const ROLE_META: Record<Role, { label: string; className: string }> = {
   super_admin: { label: 'Super Admin', className: 'gradient-brand text-white' },
-  content_mod: { label: 'Content Mod', className: 'bg-primary text-white' },
+  content_mod: { label: 'Content Mod', className: 'bg-primary-solid text-white' },
   community_mgr: { label: 'Community Mgr', className: 'bg-community text-white' },
   user: { label: 'Member', className: 'bg-surface-2 text-text-secondary' },
 };

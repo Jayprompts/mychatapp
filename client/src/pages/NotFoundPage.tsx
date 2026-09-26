@@ -4,7 +4,7 @@ import { buttonClasses } from '@/components/ui/buttonClasses';
 
 export function NotFoundPage() {
   return (
-    <div className="flex min-h-dvh flex-col items-center justify-center bg-bg px-6 text-center">
+    <main className="flex min-h-dvh flex-col items-center justify-center bg-bg px-6 text-center">
       <div className="mb-6 flex size-24 items-center justify-center rounded-full bg-linear-135 from-[#00B2FF]/12 to-[#B620E0]/12">
         <Compass size={44} strokeWidth={1.5} className="text-primary" aria-hidden />
       </div>
@@ -16,6 +16,6 @@ export function NotFoundPage() {
       <Link to="/" className={buttonClasses({ className: 'mt-8' })}>
         Go back home
       </Link>
-    </div>
+    </main>
   );
 }

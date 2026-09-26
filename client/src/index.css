@@ -11,16 +11,24 @@
   --color-text-primary: #050505;
   --color-text-secondary: #65676B;
   --color-border: #E4E6EB;
-  --color-success: #31A24C;
+  --color-success: #1D8039; /* deepened from #31A24C for readable text (WCAG AA 4.5:1) */
   --color-warning: #F7B928;
-  --color-error: #FA383E;
+  --color-error: #D9262C; /* deepened from #FA383E, same reason */
   --color-online: #31A24C;
   --color-surface-2: #F0F2F5;
-  --color-text-tertiary: #A0A2A9;
+  --color-text-tertiary: #717479; /* was #A0A2A9 — too faint for text */
   --color-community: #8B5CF6;
 
   /* Added for dark mode (Phase 10): every fixed colour now has a token, so the theme swaps in one place */
-  --color-accent: #B620E0;
+  --color-accent: #A21CC8; /* #B620E0 deepened a touch for small text */
+  /* Small coloured text on a tint of itself (chips, badges) needs a slightly deeper shade */
+  --color-primary-ink: #055AE0;
+  --color-success-ink: #1A7A35;
+  --color-error-ink: #C41F25;
+  /* Solid fills behind white text (buttons, badges). Same as the text colours in light mode; darker in dark mode,
+     where the text colours are lightened for readability. */
+  --color-primary-solid: #0866FF;
+  --color-error-solid: #D9262C;
   --color-warning-ink: #8F6B00; /* readable amber text on light backgrounds */
   --color-pink-ink: #DB2777;
   --color-teal-ink: #0F766E;
@@ -49,8 +57,12 @@
 
 .dark {
   color-scheme: dark; /* native scrollbars, <select> menus, date pickers */
-  --color-primary: #2D88FF;
-  --color-primary-hover: #4599FF;
+  --color-primary: #4599FF;
+  --color-primary-hover: #5AA5FF;
+  --color-primary-solid: #1F6FEB;
+  --color-error: #FF6166;
+  --color-error-solid: #D92D32;
+  --color-success: #31A24C;
   --color-bg: #18191A;
   --color-card: #242526;
   --color-text-primary: #E4E6EB;
@@ -59,6 +71,9 @@
   --color-border: #3A3B3C;
   --color-surface-2: #3A3B3C;
   --color-accent: #D27AF2;
+  --color-primary-ink: #4599FF;
+  --color-success-ink: #3DB95A;
+  --color-error-ink: #FF6166;
   --color-warning-ink: #F7B928;
   --color-pink-ink: #F472B6;
   --color-teal-ink: #2DD4BF;
@@ -182,4 +197,16 @@ body {
 }
 .comment-flash > div > div:first-child {
   animation: commentFlash 2s ease-out;
+}
+
+/* People who ask their device for less motion get it: no shimmer, slides, bounces or spins. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

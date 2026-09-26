@@ -29,7 +29,7 @@ export function CommunityPreview({ community: c, invited = false }: { community:
           <Users size={14} /> {c.memberCount.toLocaleString()} {c.memberCount === 1 ? 'member' : 'members'}
           {c.onlineCount > 0 && <span className="text-success">· {c.onlineCount} online</span>}
         </p>
-        <span className="mt-3 inline-block rounded-full bg-primary/8 px-3 py-1 text-xs font-bold text-primary">{c.category}</span>
+        <span className="mt-3 inline-block rounded-full bg-primary/8 px-3 py-1 text-xs font-bold text-primary-ink">{c.category}</span>
         <p className="mt-4 text-[15px] leading-relaxed whitespace-pre-wrap text-text-primary">{c.description || 'No description yet.'}</p>
 
         <div className="mt-6 rounded-lg border border-border bg-card p-4">

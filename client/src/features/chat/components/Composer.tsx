@@ -232,13 +232,13 @@ export function Composer({ conversationId, replyTo, replyToName, onCancelReply, 
               <Trash2 size={21} />
             </button>
             <div className="flex h-11 min-w-0 flex-1 items-center gap-3 rounded-[22px] bg-bg px-4" aria-live="polite">
-              <span className="size-2.5 shrink-0 animate-pulse rounded-full bg-error" aria-hidden />
+              <span className="size-2.5 shrink-0 animate-pulse rounded-full bg-error-solid" aria-hidden />
               <span className="w-10 shrink-0 text-sm font-medium text-text-primary tabular-nums">
                 {recorder.state.status === 'requesting' ? '…' : formatClock(recorder.elapsedMs)}
               </span>
               <div className="flex h-7 min-w-0 flex-1 items-center justify-end gap-[3px] overflow-hidden" aria-hidden>
                 {recorder.liveLevels.map((level, i) => (
-                  <span key={i} className="w-[3px] shrink-0 rounded-full bg-primary" style={{ height: `${Math.max(12, level * 100)}%` }} />
+                  <span key={i} className="w-[3px] shrink-0 rounded-full bg-primary-solid" style={{ height: `${Math.max(12, level * 100)}%` }} />
                 ))}
               </div>
               {recorder.elapsedMs > MAX_RECORDING_MS - 15_000 && (

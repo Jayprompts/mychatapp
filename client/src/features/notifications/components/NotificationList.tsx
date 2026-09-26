@@ -48,7 +48,7 @@ export function NotificationList({ onOpen }: { onOpen?: () => void }) {
       {groups.map(([label, items]) =>
         items.length ? (
           <section key={label} aria-label={label}>
-            <h3 className="bg-bg px-4 pt-2.5 pb-1.5 text-[11px] font-bold tracking-[0.08em] text-text-secondary uppercase">{label}</h3>
+            <h2 className="bg-bg px-4 pt-2.5 pb-1.5 text-[11px] font-bold tracking-[0.08em] text-text-secondary uppercase">{label}</h2>
             <div className="bg-card">
               {items.map((n) => (
                 <NotificationItem key={n.id} n={n} onOpen={onOpen} />

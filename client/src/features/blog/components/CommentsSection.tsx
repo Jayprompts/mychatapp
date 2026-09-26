@@ -219,7 +219,7 @@ function CommentItem({
               ) : (
                 <span className="font-bold text-text-primary">{name}</span>
               )}
-              {mine && <span className="rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary">You</span>}
+              {mine && <span className="rounded-full bg-primary/10 px-1.5 text-[10px] font-bold text-primary-ink">You</span>}
               <span className="text-[11px] text-text-secondary">
                 {formatAgo(c.createdAt)}
                 {c.editedAt && ' · edited'}

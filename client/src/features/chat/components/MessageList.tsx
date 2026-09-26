@@ -6,6 +6,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { Lightbox } from '@/components/ui/Lightbox';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { errorMessage } from '@/lib/api';
+import { dropFromOutbox } from '@/lib/connection';
 import { toast } from '@/lib/toast';
 import { formatDayLabel, isSameDay } from '@/lib/time';
 import { useDeleteMessage, useMessages, useReact, useSendMedia, useSendMessage } from '../api';
@@ -54,6 +55,7 @@ export function MessageList({ conversation, myId, typingUserIds, onReply, onEdit
   const photos = useMemo(() => messages.filter((m) => m.type === 'image' && m.media && !m.deletedAt), [messages]);
 
   const retry = (m: Message) => {
+    if (m.clientId) dropFromOutbox(m.clientId); // tapped before the reconnect got to it
     if (m.type === 'text') return void send(m.text, m);
     const blob = m.local?.blob;
     if (!blob || !m.media) return;

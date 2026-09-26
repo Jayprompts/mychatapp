@@ -58,7 +58,7 @@ function ReportForm({ target, onClose }: { target: ReportTarget; onClose: () => 
               reason === r ? 'border-primary bg-primary/6 font-semibold text-text-primary' : 'border-border bg-bg text-text-primary hover:border-primary/30',
             )}
           >
-            <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-full border-2', reason === r ? 'border-primary bg-primary' : 'border-border')}>
+            <span className={cn('flex size-5 shrink-0 items-center justify-center rounded-full border-2', reason === r ? 'border-primary bg-primary-solid' : 'border-border')}>
               {reason === r && <span className="size-2 rounded-full bg-white" />}
             </span>
             {r}

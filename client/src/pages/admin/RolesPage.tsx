@@ -4,7 +4,7 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Modal } from '@/components/ui/Modal';
 import { useAdminUsers, useSetRole, useStaff } from '@/features/admin/api';
-import { AdminRoleBadge, PageTitle, SearchBox, TableCard, td, th } from '@/features/admin/components/ui';
+import { AdminRoleBadge, PageTitle, SearchBox, SkeletonRows, TableCard, td, th } from '@/features/admin/components/ui';
 import { ROLE_LABELS, STAFF_ROLES } from '@/features/admin/types';
 import { useMe } from '@/features/auth/api';
 import type { Role } from '@/features/auth/types';
@@ -61,6 +61,7 @@ export function RolesPage() {
             </tr>
           </thead>
           <tbody>
+            {staff.isPending && <SkeletonRows cols={3} rows={3} />}
             {(staff.data?.users ?? []).map((u) => (
               <tr key={u.id} className="border-b border-row-line last:border-0">
                 <td className={td}>

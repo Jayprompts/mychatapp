@@ -19,7 +19,8 @@ export function LoginPage() {
     formState: { errors },
   } = useForm({
     resolver: zodResolver(loginSchema),
-    defaultValues: { identifier: '', password: '' },
+    // Coming back from "Session expired": their username is already filled in.
+    defaultValues: { identifier: (location.state as { identifier?: string } | null)?.identifier ?? '', password: '' },
   });
 
   // On success useLogin stores the user; <PublicOnly> then redirects into the app.

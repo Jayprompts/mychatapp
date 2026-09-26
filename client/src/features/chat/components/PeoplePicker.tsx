@@ -95,7 +95,7 @@ export function PeoplePicker({ selected, onChange, alreadyIn, autoFocus }: Props
                     <span
                       className={cn(
                         'flex size-[22px] shrink-0 items-center justify-center rounded-full border-2 transition-colors',
-                        checked || inGroup ? 'border-primary bg-primary text-white' : 'border-border',
+                        checked || inGroup ? 'border-primary bg-primary-solid text-white' : 'border-border',
                       )}
                       aria-hidden
                     >

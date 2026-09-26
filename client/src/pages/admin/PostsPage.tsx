@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Menu, type MenuItem } from '@/components/ui/Menu';
 import { useAdminPosts, useBulkPosts, usePostAction } from '@/features/admin/api';
 import { ReasonDialog } from '@/features/admin/components/ReasonDialog';
-import { FilterSelect, PageTitle, Pagination, SearchBox, TableCard, td, th } from '@/features/admin/components/ui';
+import { FilterSelect, PageTitle, Pagination, SearchBox, SkeletonRows, TableCard, td, th } from '@/features/admin/components/ui';
 import type { AdminPost } from '@/features/admin/types';
 import { PostCover } from '@/features/blog/components/PostCover';
 import { TagChip } from '@/features/blog/components/TagChip';
@@ -93,10 +93,11 @@ export function PostsPage() {
                   onChange={(e) => setSelected(e.target.checked ? new Set(posts.map((p) => p.id)) : new Set())}
                 />
               </th>
-              {['Post', 'Author', 'Tag', 'Published', 'Engagement', ''].map((h) => <th key={h} className={th}>{h}</th>)}
+              {['Post', 'Author', 'Tag', 'Published', 'Engagement', ''].map((h) => <th key={h} className={th}>{h || <span className="sr-only">Actions</span>}</th>)}
             </tr>
           </thead>
           <tbody>
+            {list.isPending && <SkeletonRows cols={6} leading={1} />}
             {posts.map((p) => (
               <tr key={p.id} className={cn('border-b border-row-line last:border-0 hover:bg-row-hover', selected.has(p.id) && 'bg-primary/4')}>
                 <td className={td}><input type="checkbox" aria-label={`Select ${p.title}`} checked={selected.has(p.id)} onChange={() => toggle(p.id)} /></td>
@@ -122,7 +123,6 @@ export function PostsPage() {
           </tbody>
         </table>
         {list.data && posts.length === 0 && <p className="px-4 py-10 text-center text-[13px] text-text-secondary">No posts match these filters.</p>}
-        {list.isPending && <p className="px-4 py-10 text-center text-[13px] text-text-secondary">Loading…</p>}
       </TableCard>
 
       {pending && <PostDialog pending={pending} onClose={() => setPending(null)} onDone={() => setSelected(new Set())} />}

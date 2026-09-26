@@ -1,6 +1,7 @@
 import { cn } from '@/lib/cn';
 
-const PALETTE = ['#0866FF', '#B620E0', '#00B2FF', '#31A24C', '#F7B928', '#FA383E', '#8B5CF6', '#EC4899'];
+// Deep enough for white initials to stay readable (WCAG AA) — brand hues, a shade darker where needed.
+const PALETTE = ['#0866FF', '#B620E0', '#0077C8', '#1E8540', '#A35F00', '#D9262C', '#7C4DEB', '#C8246F'];
 
 // Same name -> same color, every time.
 function colorFor(seed: string): string {

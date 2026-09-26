@@ -1,5 +1,5 @@
 import { useRef, type MouseEvent, type PointerEvent, type ReactNode } from 'react';
-import { Ban, Check, CheckCheck, CircleAlert, LoaderCircle, MoreHorizontal, Reply } from 'lucide-react';
+import { Ban, Check, CheckCheck, CircleAlert, Clock, LoaderCircle, MoreHorizontal, Reply } from 'lucide-react';
 import { Avatar } from '@/components/ui/Avatar';
 import { cn } from '@/lib/cn';
 import { formatTime } from '@/lib/time';
@@ -43,6 +43,7 @@ export function MessageBubble(props: MessageBubbleProps) {
   const { message, mine, myId, sender, showSenderName, position, receipt, highlighted } = props;
   const failed = message.status === 'failed';
   const sending = message.status === 'sending';
+  const queued = message.status === 'queued'; // offline: goes by itself on reconnect
   const deleted = !!message.deletedAt;
   const interactive = !deleted && !message.status; // confirmed, not unsent
   const bubbleRef = useRef<HTMLDivElement>(null);
@@ -143,7 +144,7 @@ export function MessageBubble(props: MessageBubbleProps) {
             className={cn(
               'flex min-w-0 flex-col gap-1 [-webkit-touch-callout:none] [@media(pointer:coarse)]:select-none',
               mine ? 'items-end' : 'items-start',
-              failed && 'opacity-70',
+              (failed || queued) && 'opacity-70',
             )}
           >
             {deleted ? (
@@ -212,12 +213,19 @@ export function MessageBubble(props: MessageBubbleProps) {
           </button>
         )}
 
-        {(position.last || failed || (sending && message.type !== 'text')) && (
+        {(position.last || failed || queued || (sending && message.type !== 'text')) && (
           <div className="mt-1 flex items-center gap-1 px-1 text-[11px] text-text-secondary">
             {failed ? (
               <button type="button" onClick={() => props.onRetry?.(message)} className="font-medium text-error hover:underline">
                 Not sent · Tap to retry
               </button>
+            ) : queued ? (
+              <>
+                <Clock size={11} aria-hidden /> Waiting for connection ·
+                <button type="button" onClick={() => props.onRetry?.(message)} className="font-medium text-primary hover:underline">
+                  Send now
+                </button>
+              </>
             ) : sending ? (
               <>
                 <LoaderCircle size={11} className="animate-spin" aria-hidden />

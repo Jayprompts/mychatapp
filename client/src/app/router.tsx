@@ -5,32 +5,18 @@ import { PublicOnly, RequireAuth } from '@/features/auth/guards';
 import { LoginPage } from '@/features/auth/pages/LoginPage';
 import { RegisterPage } from '@/features/auth/pages/RegisterPage';
 import { WelcomePage } from '@/features/auth/pages/WelcomePage';
-import { BlogPage } from '@/pages/BlogPage';
-import { PostEditorPage } from '@/pages/PostEditorPage';
-import { PostPage } from '@/pages/PostPage';
 import { ChatsPage } from '@/pages/ChatsPage';
-import { CommunitiesPage } from '@/pages/CommunitiesPage';
-import { InvitePage } from '@/pages/InvitePage';
-import { AdminLayout } from '@/features/admin/components/AdminLayout';
 import { RequireStaff } from '@/features/admin/components/RequireStaff';
-import { AuditPage } from '@/pages/admin/AuditPage';
-import { AdminCommunitiesPage } from '@/pages/admin/CommunitiesAdminPage';
-import { DashboardPage } from '@/pages/admin/DashboardPage';
-import { PostsPage } from '@/pages/admin/PostsPage';
-import { ReportsPage } from '@/pages/admin/ReportsPage';
-import { RolesPage } from '@/pages/admin/RolesPage';
-import { UsersPage } from '@/pages/admin/UsersPage';
 import { NotFoundPage } from '@/pages/NotFoundPage';
-import { NotificationsPage } from '@/pages/NotificationsPage';
-import { EditProfilePage } from '@/pages/EditProfilePage';
-import { ProfilePage } from '@/pages/ProfilePage';
-import { SettingsPage } from '@/pages/SettingsPage';
-import { UserProfilePage } from '@/pages/UserProfilePage';
 import { RouteErrorPage } from '@/pages/RouteErrorPage';
+import { SplashScreen } from '@/components/layout/SplashScreen';
 
+// Chats, sign-in and the app frame load up front; every other page is its own chunk, fetched the
+// first time it's opened (the router waits for it before switching, so there's no blank flash).
 export const router = createBrowserRouter([
   {
     errorElement: <RouteErrorPage />,
+    hydrateFallbackElement: <SplashScreen />, // first load straight onto a lazy page
     children: [
       // Logged-out only
       {
@@ -57,13 +43,28 @@ export const router = createBrowserRouter([
             element: <RequireStaff />,
             children: [
               {
-                element: <AdminLayout />,
+                lazy: () => import('@/features/admin/components/AdminLayout').then((m) => ({ Component: m.AdminLayout })),
                 children: [
-                  { index: true, element: <DashboardPage /> },
-                  { path: 'users', element: <UsersPage /> },
-                  { element: <RequireStaff roles={['content_mod']} />, children: [{ path: 'reports', element: <ReportsPage /> }, { path: 'posts', element: <PostsPage /> }] },
-                  { element: <RequireStaff roles={['community_mgr']} />, children: [{ path: 'communities', element: <AdminCommunitiesPage /> }] },
-                  { element: <RequireStaff roles={['super_admin']} />, children: [{ path: 'roles', element: <RolesPage /> }, { path: 'audit', element: <AuditPage /> }] },
+                  { index: true, lazy: () => import('@/pages/admin/DashboardPage').then((m) => ({ Component: m.DashboardPage })) },
+                  { path: 'users', lazy: () => import('@/pages/admin/UsersPage').then((m) => ({ Component: m.UsersPage })) },
+                  {
+                    element: <RequireStaff roles={['content_mod']} />,
+                    children: [
+                      { path: 'reports', lazy: () => import('@/pages/admin/ReportsPage').then((m) => ({ Component: m.ReportsPage })) },
+                      { path: 'posts', lazy: () => import('@/pages/admin/PostsPage').then((m) => ({ Component: m.PostsPage })) },
+                    ],
+                  },
+                  {
+                    element: <RequireStaff roles={['community_mgr']} />,
+                    children: [{ path: 'communities', lazy: () => import('@/pages/admin/CommunitiesAdminPage').then((m) => ({ Component: m.AdminCommunitiesPage })) }],
+                  },
+                  {
+                    element: <RequireStaff roles={['super_admin']} />,
+                    children: [
+                      { path: 'roles', lazy: () => import('@/pages/admin/RolesPage').then((m) => ({ Component: m.RolesPage })) },
+                      { path: 'audit', lazy: () => import('@/pages/admin/AuditPage').then((m) => ({ Component: m.AuditPage })) },
+                    ],
+                  },
                 ],
               },
             ],
@@ -75,17 +76,17 @@ export const router = createBrowserRouter([
               // One route for the list and an open conversation (optional :conversationId), so the
               // chat list stays mounted while switching conversations.
               { path: '/chats/:conversationId?', element: <ChatsPage /> },
-              { path: '/communities/:communityId?', element: <CommunitiesPage /> },
-              { path: '/join/:code', element: <InvitePage /> },
-              { path: '/blog', element: <BlogPage /> },
+              { path: '/communities/:communityId?', lazy: () => import('@/pages/CommunitiesPage').then((m) => ({ Component: m.CommunitiesPage })) },
+              { path: '/join/:code', lazy: () => import('@/pages/InvitePage').then((m) => ({ Component: m.InvitePage })) },
+              { path: '/blog', lazy: () => import('@/pages/BlogPage').then((m) => ({ Component: m.BlogPage })) },
               // One route for new + edit, so creating the draft doesn't remount the editor.
-              { path: '/blog/write/:postId?', element: <PostEditorPage /> },
-              { path: '/blog/:postId', element: <PostPage /> },
-              { path: '/profile', element: <ProfilePage /> },
-              { path: '/profile/edit', element: <EditProfilePage /> },
-              { path: '/settings', element: <SettingsPage /> },
-              { path: '/notifications', element: <NotificationsPage /> },
-              { path: '/u/:username', element: <UserProfilePage /> },
+              { path: '/blog/write/:postId?', lazy: () => import('@/pages/PostEditorPage').then((m) => ({ Component: m.PostEditorPage })) },
+              { path: '/blog/:postId', lazy: () => import('@/pages/PostPage').then((m) => ({ Component: m.PostPage })) },
+              { path: '/profile', lazy: () => import('@/pages/ProfilePage').then((m) => ({ Component: m.ProfilePage })) },
+              { path: '/profile/edit', lazy: () => import('@/pages/EditProfilePage').then((m) => ({ Component: m.EditProfilePage })) },
+              { path: '/settings', lazy: () => import('@/pages/SettingsPage').then((m) => ({ Component: m.SettingsPage })) },
+              { path: '/notifications', lazy: () => import('@/pages/NotificationsPage').then((m) => ({ Component: m.NotificationsPage })) },
+              { path: '/u/:username', lazy: () => import('@/pages/UserProfilePage').then((m) => ({ Component: m.UserProfilePage })) },
             ],
           },
         ],

@@ -154,7 +154,7 @@ function ConversationRow({ conversation: c, active }: { conversation: Conversati
               {preview}
             </span>
             {unread && (
-              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-error px-1.5 text-[11px] font-bold text-white">
+              <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-error-solid px-1.5 text-[11px] font-bold text-white">
                 {c.unreadCount > 99 ? '99+' : c.unreadCount}
               </span>
             )}

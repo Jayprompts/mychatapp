@@ -35,7 +35,7 @@ export function CommunityCardView({ community: c }: { community: CommunityCard }
             </p>
           </div>
         </div>
-        <span className="self-start rounded-full bg-primary/8 px-2.5 py-0.5 text-[11px] font-bold text-primary">{c.category}</span>
+        <span className="self-start rounded-full bg-primary/8 px-2.5 py-0.5 text-[11px] font-bold text-primary-ink">{c.category}</span>
         <p className="line-clamp-2 flex-1 text-[13px] leading-relaxed text-text-secondary">{c.description || 'No description yet.'}</p>
         <div className="self-start">
           <JoinButton community={c} />

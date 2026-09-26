@@ -25,7 +25,7 @@ export function ProfileHeader({ profile: p, actions, onAvatarClick }: { profile:
           {onAvatarClick ? (
             <button type="button" onClick={onAvatarClick} aria-label="Change profile photo" className="group relative rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
               {avatar}
-              <span className="absolute right-0 bottom-0 flex size-8 items-center justify-center rounded-full border-2 border-card bg-primary text-white shadow transition-transform group-hover:scale-110">
+              <span className="absolute right-0 bottom-0 flex size-8 items-center justify-center rounded-full border-2 border-card bg-primary-solid text-white shadow transition-transform group-hover:scale-110">
                 <Camera size={15} />
               </span>
             </button>

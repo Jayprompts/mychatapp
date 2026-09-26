@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { flushOutbox, setSocketState } from '@/lib/connection';
 import { getSocket } from '@/lib/socket';
-import { meQueryKey } from '@/features/auth/api';
+import { isSessionExpired, meQueryKey } from '@/features/auth/api';
 import { api } from '@/lib/api';
 import {
   applyMessageToList,
@@ -32,6 +33,8 @@ export function useChatRealtime(myId: string | undefined) {
     let connectedBefore = false;
 
     socket.on('connect', () => {
+      setSocketState('connected');
+      flushOutbox(); // messages written while offline
       // The chat list may have been read before we joined our live room (even if that read is still
       // in flight) — refetch once now; from here on, new messages arrive live.
       refreshChatList(qc);
@@ -39,7 +42,18 @@ export function useChatRealtime(myId: string | undefined) {
       connectedBefore = true;
     });
 
+    socket.on('disconnect', (reason) => {
+      if (reason !== 'io server disconnect') return setSocketState('disconnected'); // network: socket.io retries
+      // The server hung up on purpose (logged out everywhere, suspended…) and won't be retried: re-check
+      // the session — "Session expired" or back to Welcome — and reconnect if it turns out to be fine.
+      setSocketState('idle');
+      void qc.invalidateQueries({ queryKey: meQueryKey }).then(() => {
+        if (qc.getQueryData(meQueryKey) && !isSessionExpired()) socket.connect();
+      });
+    });
+
     socket.on('connect_error', (err) => {
+      setSocketState('disconnected');
       // Session ended (logout elsewhere / expired): re-check who we are; guards redirect if needed.
       if (err.message === 'Not authenticated') void qc.invalidateQueries({ queryKey: meQueryKey });
     });
@@ -93,6 +107,7 @@ export function useChatRealtime(myId: string | undefined) {
     return () => {
       socket.removeAllListeners();
       socket.disconnect();
+      setSocketState('idle');
       resetLiveState();
     };
   }, [myId, qc]);

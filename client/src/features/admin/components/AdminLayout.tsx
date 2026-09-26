@@ -82,11 +82,11 @@ export function AdminLayout() {
           >
             <span className="relative shrink-0">
               <Icon size={17} />
-              {mini && to === '/admin/reports' && openReports > 0 && <span className="absolute -top-1 -right-1 size-2 rounded-full bg-error" />}
+              {mini && to === '/admin/reports' && openReports > 0 && <span className="absolute -top-1 -right-1 size-2 rounded-full bg-error-solid" />}
             </span>
             {!mini && <span className="flex-1">{label}</span>}
             {!mini && to === '/admin/reports' && openReports > 0 && (
-              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-error px-1 text-[10px] font-bold text-white">{openReports > 99 ? '99+' : openReports}</span>
+              <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-error-solid px-1 text-[10px] font-bold text-white">{openReports > 99 ? '99+' : openReports}</span>
             )}
           </NavLink>
         ))}

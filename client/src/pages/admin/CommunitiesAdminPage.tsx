@@ -7,7 +7,7 @@ import { Modal } from '@/components/ui/Modal';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useAdminCommunities, useCommunityAction, useCommunityMembers, useRemoveCommunityMember, useSetCommunityRole } from '@/features/admin/api';
 import { ReasonDialog } from '@/features/admin/components/ReasonDialog';
-import { FilterSelect, PageTitle, Pagination, SearchBox, TableCard, td, th } from '@/features/admin/components/ui';
+import { FilterSelect, PageTitle, Pagination, SearchBox, SkeletonRows, TableCard, td, th } from '@/features/admin/components/ui';
 import type { AdminCommunity, CommunityMember } from '@/features/admin/types';
 import { CommunityAvatar } from '@/features/communities/components/CommunityAvatar';
 import { useDebouncedValue } from '@/hooks/useDebouncedValue';
@@ -63,10 +63,11 @@ export function AdminCommunitiesPage() {
         <table className={cn('w-full min-w-[720px] border-collapse', list.isPlaceholderData && 'opacity-60')}>
           <thead>
             <tr className="border-b border-border">
-              {['Community', 'Owner', 'Members', 'Category', 'Created', ''].map((h) => <th key={h} className={th}>{h}</th>)}
+              {['Community', 'Owner', 'Members', 'Category', 'Created', ''].map((h) => <th key={h} className={th}>{h || <span className="sr-only">Actions</span>}</th>)}
             </tr>
           </thead>
           <tbody>
+            {list.isPending && <SkeletonRows cols={6} />}
             {communities.map((c) => (
               <tr key={c.id} className="border-b border-row-line last:border-0 hover:bg-row-hover">
                 <td className={td}>
@@ -92,7 +93,6 @@ export function AdminCommunitiesPage() {
           </tbody>
         </table>
         {list.data && communities.length === 0 && <p className="px-4 py-10 text-center text-[13px] text-text-secondary">No communities match these filters.</p>}
-        {list.isPending && <p className="px-4 py-10 text-center text-[13px] text-text-secondary">Loading…</p>}
       </TableCard>
 
       {deleting && (

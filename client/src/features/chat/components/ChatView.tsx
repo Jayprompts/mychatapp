@@ -143,6 +143,7 @@ function ChatHeader({ conversation, myId, typingUserIds, infoOpen, onToggleInfo 
 
   return (
     <header className="flex h-16 shrink-0 items-center gap-1 border-b border-border bg-card px-2 sm:px-4">
+      <h1 className="sr-only">{conversation.name}</h1>
       <Link
         to={conversation.type === 'community' ? '/communities' : '/chats'}
         aria-label={conversation.type === 'community' ? 'Back to communities' : 'Back to chats'}

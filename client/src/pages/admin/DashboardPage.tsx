@@ -47,8 +47,8 @@ export function DashboardPage() {
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <StatCard label="Total users" value={s.users.total} icon={Users} accent="gradient-brand" delta={s.users.newThisWeek - s.users.newLastWeek} note={`${s.users.newThisWeek} joined this week`} />
           <StatCard label="Active communities" value={s.communities.active} icon={UsersRound} accent="bg-community" note={`with messages this week · ${s.communities.total} in total`} />
-          <StatCard label="Posts this week" value={s.posts.thisWeek} icon={MessageSquare} accent="bg-primary" delta={s.posts.thisWeek - s.posts.lastWeek} note="vs last week" />
-          <StatCard label="Pending reports" value={s.reports.open} icon={Flag} accent={s.reports.open ? 'bg-error' : 'bg-success'} note={s.reports.open ? 'waiting for a moderator' : 'all clear'} to={canModerate ? '/admin/reports' : undefined} />
+          <StatCard label="Posts this week" value={s.posts.thisWeek} icon={MessageSquare} accent="bg-primary-solid" delta={s.posts.thisWeek - s.posts.lastWeek} note="vs last week" />
+          <StatCard label="Pending reports" value={s.reports.open} icon={Flag} accent={s.reports.open ? 'bg-error-solid' : 'bg-success'} note={s.reports.open ? 'waiting for a moderator' : 'all clear'} to={canModerate ? '/admin/reports' : undefined} />
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -76,8 +76,17 @@ export function DashboardPage() {
               </li>
             ))}
           </ul>
+        ) : s ? (
+          <p className="px-4 py-6 text-center text-[13px] text-text-secondary">Nothing yet — admin actions will show up here.</p>
         ) : (
-          <p className="px-4 py-6 text-center text-[13px] text-text-secondary">{s ? 'Nothing yet — admin actions will show up here.' : 'Loading…'}</p>
+          <ul aria-hidden>
+            {Array.from({ length: 4 }, (_, i) => (
+              <li key={i} className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 last:border-0">
+                <Skeleton className="h-3 w-2/3" />
+                <Skeleton className="h-3 w-10" />
+              </li>
+            ))}
+          </ul>
         )}
       </section>
     </div>

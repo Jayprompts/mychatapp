@@ -208,7 +208,7 @@ export function CreateCommunityDialog({ open, onClose }: { open: boolean; onClos
                     <span
                       className={cn(
                         'mt-1 flex size-5 shrink-0 items-center justify-center rounded-full border-2',
-                        visibility === opt.value ? 'border-primary bg-primary' : 'border-border',
+                        visibility === opt.value ? 'border-primary bg-primary-solid' : 'border-border',
                       )}
                       aria-hidden
                     >

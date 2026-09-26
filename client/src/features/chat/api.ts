@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router';
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { api, upload } from '@/lib/api';
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import { api, ApiError, upload } from '@/lib/api';
+import { queueForReconnect } from '@/lib/connection';
 import { getSocket } from '@/lib/socket';
 import { useMe } from '@/features/auth/api';
 import {
@@ -62,53 +63,61 @@ export function useMessages(conversationId: string) {
 const quoteOf = (m?: Message | null): ReplyQuote | null =>
   m ? { id: m.id, senderId: m.senderId, type: m.type, preview: previewFor(m.type, m.text), deleted: false } : null;
 
+// No connection at all (vs. the server refusing): worth waiting for, not a "Tap to retry".
+const isNetworkError = (err: unknown) => err instanceof ApiError && err.status === 0;
+
 const newClientId = () =>
   globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
 
 /**
  * Optimistic send: the bubble appears instantly as "sending", becomes a real message when the server
- * confirms, or turns "failed" (tap to retry). Retrying reuses the clientId, so it can never duplicate.
+ * confirms, or turns "failed" (tap to retry). Offline, it's "queued" instead and goes by itself on
+ * reconnect. Retrying reuses the clientId, so it can never duplicate.
  */
 export function useSendMessage(conversationId: string) {
   const qc = useQueryClient();
   const { data: me } = useMe();
-
   return useCallback(
-    async (text: string, retryOf?: Message, replyTo?: Message | null) => {
-      if (!me) return;
-      const quote = retryOf?.replyTo ?? quoteOf(replyTo);
-      const optimistic: Message = {
-        id: retryOf?.id ?? `temp-${newClientId()}`,
-        conversationId,
-        senderId: me.id,
-        type: 'text',
-        text,
-        media: null,
-        replyTo: quote,
-        reactions: [],
-        clientId: retryOf?.clientId ?? newClientId(),
-        createdAt: retryOf?.createdAt ?? new Date().toISOString(),
-        editedAt: null,
-        deletedAt: null,
-        status: 'sending',
-      };
-      upsertMessage(qc, optimistic);
-      applyMessageToList(qc, optimistic, me.id);
-      getSocket().emit('typing', { conversationId, isTyping: false });
-
-      try {
-        const { message } = await api<{ message: Message }>(`/conversations/${conversationId}/messages`, {
-          method: 'POST',
-          body: { text, clientId: optimistic.clientId, ...(quote ? { replyTo: quote.id } : {}) },
-        });
-        upsertMessage(qc, message);
-        applyMessageToList(qc, message, me.id);
-      } catch {
-        upsertMessage(qc, { ...optimistic, status: 'failed' });
-      }
-    },
+    (text: string, retryOf?: Message, replyTo?: Message | null) =>
+      me ? sendText(qc, me.id, conversationId, text, retryOf, replyTo) : Promise.resolve(),
     [qc, me, conversationId],
   );
+}
+
+async function sendText(qc: QueryClient, myId: string, conversationId: string, text: string, retryOf?: Message, replyTo?: Message | null) {
+  const quote = retryOf?.replyTo ?? quoteOf(replyTo);
+  const clientId = retryOf?.clientId ?? newClientId();
+  const optimistic: Message = {
+    id: retryOf?.id ?? `temp-${clientId}`,
+    conversationId,
+    senderId: myId,
+    type: 'text',
+    text,
+    media: null,
+    replyTo: quote,
+    reactions: [],
+    clientId,
+    createdAt: retryOf?.createdAt ?? new Date().toISOString(),
+    editedAt: null,
+    deletedAt: null,
+    status: 'sending',
+  };
+  upsertMessage(qc, optimistic);
+  applyMessageToList(qc, optimistic, myId);
+  getSocket().emit('typing', { conversationId, isTyping: false });
+
+  try {
+    const { message } = await api<{ message: Message }>(`/conversations/${conversationId}/messages`, {
+      method: 'POST',
+      body: { text, clientId, ...(quote ? { replyTo: quote.id } : {}) },
+    });
+    upsertMessage(qc, message);
+    applyMessageToList(qc, message, myId);
+  } catch (err) {
+    const failed: Message = { ...optimistic, status: isNetworkError(err) ? 'queued' : 'failed' };
+    upsertMessage(qc, failed);
+    if (failed.status === 'queued') queueForReconnect(clientId, () => void sendText(qc, myId, conversationId, text, failed));
+  }
 }
 
 export function useMarkRead(conversationId: string) {
@@ -150,72 +159,74 @@ export type MediaDraft = (
 
 /**
  * Photos & voice notes: shown instantly from the device (with upload progress), then swapped for the
- * server copy. On failure the file is kept in memory so "Tap to retry" can re-upload it.
+ * server copy. On failure the file is kept in memory, to re-upload by tap (or by itself on reconnect).
  */
 export function useSendMedia(conversationId: string) {
   const qc = useQueryClient();
   const { data: me } = useMe();
-
   return useCallback(
-    async (draft: MediaDraft, retryOf?: Message) => {
-      if (!me) return;
-      const clientId = retryOf?.clientId ?? newClientId();
-      const localUrl = retryOf?.local?.url ?? URL.createObjectURL(draft.blob);
-
-      const optimistic: Message = {
-        id: retryOf?.id ?? `temp-${clientId}`,
-        conversationId,
-        senderId: me.id,
-        type: draft.kind,
-        text: draft.kind === 'image' ? (draft.caption ?? '') : '',
-        media: {
-          url: localUrl,
-          mimeType: draft.blob.type,
-          size: draft.blob.size,
-          durationMs: draft.kind === 'voice' ? draft.durationMs : null,
-          waveform: draft.kind === 'voice' ? draft.waveform : null,
-          width: draft.kind === 'image' ? draft.width : null,
-          height: draft.kind === 'image' ? draft.height : null,
-        },
-        replyTo: draft.replyTo ?? null,
-        reactions: [],
-        clientId,
-        createdAt: retryOf?.createdAt ?? new Date().toISOString(),
-        editedAt: null,
-        deletedAt: null,
-        status: 'sending',
-        local: { url: localUrl, blob: draft.blob, progress: 0 },
-      };
-      upsertMessage(qc, optimistic);
-      applyMessageToList(qc, optimistic, me.id);
-
-      const form = new FormData();
-      form.append('kind', draft.kind);
-      form.append('clientId', clientId);
-      if (draft.kind === 'image' && draft.caption) form.append('text', draft.caption);
-      if (draft.replyTo) form.append('replyTo', draft.replyTo.id);
-      if (draft.kind === 'voice') {
-        form.append('durationMs', String(Math.round(draft.durationMs)));
-        form.append('waveform', JSON.stringify(draft.waveform));
-      }
-      const ext = draft.blob.type.split('/')[1]?.split(';')[0] ?? 'bin';
-      form.append('file', draft.blob, `${draft.kind}.${ext}`); // file last: server reads fields first
-
-      let lastShown = 0;
-      try {
-        const { message } = await upload<{ message: Message }>(`/conversations/${conversationId}/media`, form, (p) => {
-          if (p - lastShown < 0.05 && p < 1) return; // ~20 progress updates max
-          lastShown = p;
-          upsertMessage(qc, { ...optimistic, local: { ...optimistic.local!, progress: p } });
-        });
-        upsertMessage(qc, message);
-        applyMessageToList(qc, message, me.id);
-      } catch {
-        upsertMessage(qc, { ...optimistic, status: 'failed' });
-      }
-    },
+    (draft: MediaDraft, retryOf?: Message) => (me ? sendMedia(qc, me.id, conversationId, draft, retryOf) : Promise.resolve()),
     [qc, me, conversationId],
   );
+}
+
+async function sendMedia(qc: QueryClient, myId: string, conversationId: string, draft: MediaDraft, retryOf?: Message) {
+  const clientId = retryOf?.clientId ?? newClientId();
+  const localUrl = retryOf?.local?.url ?? URL.createObjectURL(draft.blob);
+
+  const optimistic: Message = {
+    id: retryOf?.id ?? `temp-${clientId}`,
+    conversationId,
+    senderId: myId,
+    type: draft.kind,
+    text: draft.kind === 'image' ? (draft.caption ?? '') : '',
+    media: {
+      url: localUrl,
+      mimeType: draft.blob.type,
+      size: draft.blob.size,
+      durationMs: draft.kind === 'voice' ? draft.durationMs : null,
+      waveform: draft.kind === 'voice' ? draft.waveform : null,
+      width: draft.kind === 'image' ? draft.width : null,
+      height: draft.kind === 'image' ? draft.height : null,
+    },
+    replyTo: draft.replyTo ?? null,
+    reactions: [],
+    clientId,
+    createdAt: retryOf?.createdAt ?? new Date().toISOString(),
+    editedAt: null,
+    deletedAt: null,
+    status: 'sending',
+    local: { url: localUrl, blob: draft.blob, progress: 0 },
+  };
+  upsertMessage(qc, optimistic);
+  applyMessageToList(qc, optimistic, myId);
+
+  const form = new FormData();
+  form.append('kind', draft.kind);
+  form.append('clientId', clientId);
+  if (draft.kind === 'image' && draft.caption) form.append('text', draft.caption);
+  if (draft.replyTo) form.append('replyTo', draft.replyTo.id);
+  if (draft.kind === 'voice') {
+    form.append('durationMs', String(Math.round(draft.durationMs)));
+    form.append('waveform', JSON.stringify(draft.waveform));
+  }
+  const ext = draft.blob.type.split('/')[1]?.split(';')[0] ?? 'bin';
+  form.append('file', draft.blob, `${draft.kind}.${ext}`); // file last: server reads fields first
+
+  let lastShown = 0;
+  try {
+    const { message } = await upload<{ message: Message }>(`/conversations/${conversationId}/media`, form, (p) => {
+      if (p - lastShown < 0.05 && p < 1) return; // ~20 progress updates max
+      lastShown = p;
+      upsertMessage(qc, { ...optimistic, local: { ...optimistic.local!, progress: p } });
+    });
+    upsertMessage(qc, message);
+    applyMessageToList(qc, message, myId);
+  } catch (err) {
+    const failed: Message = { ...optimistic, status: isNetworkError(err) ? 'queued' : 'failed' };
+    upsertMessage(qc, failed);
+    if (failed.status === 'queued') queueForReconnect(clientId, () => void sendMedia(qc, myId, conversationId, draft, failed));
+  }
 }
 
 // ── Groups ─────────────────────────────────────────────────

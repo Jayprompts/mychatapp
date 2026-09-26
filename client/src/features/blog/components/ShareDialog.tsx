@@ -62,7 +62,7 @@ export function ShareDialog({ post, open, onClose }: { post: PostCard; open: boo
           </div>
           <div className="flex overflow-hidden rounded-xl border-[1.5px] border-border bg-bg">
             <input readOnly value={url} aria-label="Post link" onFocus={(e) => e.currentTarget.select()} className="min-w-0 flex-1 bg-transparent px-3.5 py-2.5 font-mono text-xs text-text-secondary outline-none" />
-            <button type="button" onClick={() => void copy()} className="border-l border-border bg-primary/8 px-4 text-[13px] font-bold text-primary hover:bg-primary/12">
+            <button type="button" onClick={() => void copy()} className="border-l border-border bg-primary/8 px-4 text-[13px] font-bold text-primary-ink hover:bg-primary/12">
               Copy
             </button>
           </div>
@@ -146,7 +146,7 @@ function ChatPicker({ post, onBack }: { post: PostCard; onBack: () => void }) {
                 disabled={sending === c.id}
                 onClick={() => void send(c.id)}
                 aria-label={`Send to ${c.name}`}
-                className="rounded-full border border-primary/20 bg-primary/8 px-3.5 py-1 text-xs font-bold text-primary transition-colors hover:bg-primary/12 disabled:opacity-50"
+                className="rounded-full border border-primary/20 bg-primary/8 px-3.5 py-1 text-xs font-bold text-primary-ink transition-colors hover:bg-primary/12 disabled:opacity-50"
               >
                 {sending === c.id ? 'Sending…' : 'Send'}
               </button>

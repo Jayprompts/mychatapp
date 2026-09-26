@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { useReportDetail, useReports, useResolveReport } from '@/features/admin/api';
 import { ReasonDialog } from '@/features/admin/components/ReasonDialog';
-import { AdminRoleBadge, FilterSelect, PageTitle, Pagination, StatusBadge, TableCard, td, th } from '@/features/admin/components/ui';
+import { AdminRoleBadge, FilterSelect, PageTitle, Pagination, SkeletonRows, StatusBadge, TableCard, td, th } from '@/features/admin/components/ui';
 import type { ReportDetail, ReportTargetType } from '@/features/admin/types';
 import { useMe } from '@/features/auth/api';
 import { PostCover } from '@/features/blog/components/PostCover';
@@ -48,7 +48,7 @@ export function ReportsPage() {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <nav className="flex rounded-md border border-border bg-card p-0.5" aria-label="Report status">
           {STATUSES.map((s) => (
-            <button key={s} type="button" aria-pressed={status === s} onClick={() => set('status', s === 'open' ? '' : s)} className={cn('rounded px-3 py-1.5 text-[13px] font-semibold capitalize', status === s ? 'bg-primary text-white' : 'text-text-secondary hover:text-text-primary')}>
+            <button key={s} type="button" aria-pressed={status === s} onClick={() => set('status', s === 'open' ? '' : s)} className={cn('rounded px-3 py-1.5 text-[13px] font-semibold capitalize', status === s ? 'bg-primary-solid text-white' : 'text-text-secondary hover:text-text-primary')}>
               {s}
             </button>
           ))}
@@ -64,6 +64,7 @@ export function ReportsPage() {
             </tr>
           </thead>
           <tbody>
+            {reports.isPending && <SkeletonRows cols={5} rows={4} />}
             {(reports.data?.rows ?? []).map((r) => {
               const T = TYPES[r.targetType];
               return (
@@ -78,7 +79,7 @@ export function ReportsPage() {
                   <td className={td}>
                     <span className="flex flex-wrap gap-1">
                       {r.reasons.map((x) => (
-                        <span key={x.reason} className="rounded-[4px] bg-error/8 px-1.5 py-0.5 text-[11px] font-semibold text-error">
+                        <span key={x.reason} className="rounded-[4px] bg-error/8 px-1.5 py-0.5 text-[11px] font-semibold text-error-ink">
                           {x.reason}{x.count > 1 && ` ×${x.count}`}
                         </span>
                       ))}
@@ -128,13 +129,13 @@ function ReportDrawer({ target, onClose }: { target: { type: ReportTargetType; i
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex justify-end bg-black/35" onMouseDown={onClose}>
-      <aside role="dialog" aria-label="Report details" onMouseDown={(e) => e.stopPropagation()} className="flex h-full w-full max-w-lg flex-col bg-card shadow-modal">
-        <header className="flex items-center justify-between border-b border-border px-4 py-3">
+      <div role="dialog" aria-modal="true" aria-label="Report details" onMouseDown={(e) => e.stopPropagation()} className="flex h-full w-full max-w-lg flex-col bg-card shadow-modal">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 className="flex items-center gap-2 text-[15px] font-bold text-text-primary">
             <ShieldAlert size={17} className="text-error" /> Reported {TYPES[target.type].label.toLowerCase()}
           </h2>
           <button type="button" onClick={onClose} aria-label="Close" className="flex size-8 items-center justify-center rounded-full hover:bg-bg"><X size={17} /></button>
-        </header>
+        </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-4">
           {!d ? (
@@ -185,7 +186,7 @@ function ReportDrawer({ target, onClose }: { target: { type: ReportTargetType; i
             )}
           </footer>
         )}
-      </aside>
+      </div>
 
       {action && (
         <ReasonNote

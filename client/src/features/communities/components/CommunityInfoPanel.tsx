@@ -73,7 +73,7 @@ export function CommunityInfoPanel({ conversation: c, myId, onClose }: Props) {
               {d.visibility === 'private' ? 'Private' : 'Public'} community · {d.memberCount.toLocaleString()} {d.memberCount === 1 ? 'member' : 'members'}
               {d.onlineCount > 0 && <span className="text-success">· {d.onlineCount} online</span>}
             </p>
-            <span className="mt-2 inline-block rounded-full bg-primary/8 px-2.5 py-0.5 text-[11px] font-bold text-primary">{d.category}</span>
+            <span className="mt-2 inline-block rounded-full bg-primary/8 px-2.5 py-0.5 text-[11px] font-bold text-primary-ink">{d.category}</span>
             {d.description && <p className="mt-2.5 text-[13px] leading-relaxed whitespace-pre-wrap text-text-primary">{d.description}</p>}
           </>
         ) : (

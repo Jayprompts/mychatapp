@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link, NavLink, Outlet, useLocation, useMatch } from 'react-router';
 import { MessageCircle, Newspaper, ShieldCheck, User, Users, type LucideIcon } from 'lucide-react';
+import { ConnectionBanner } from '@/components/layout/ConnectionBanner';
 import { Avatar } from '@/components/ui/Avatar';
 import { LiveToaster } from '@/components/ui/LiveToaster';
 import { LogoMark } from '@/components/ui/Logo';
@@ -56,60 +57,62 @@ export function AppShell() {
   ];
 
   return (
-    <div className="flex h-dvh bg-bg">
-      {/* Icon rail — tablet & desktop */}
-      <aside className="hidden w-[76px] shrink-0 flex-col items-center border-r border-border bg-card py-3 sm:flex">
-        <Link
-          to="/chats"
-          aria-label="Grove home"
-          className="mb-4 rounded-[12px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
-          <LogoMark size={40} />
-        </Link>
-
-        <nav aria-label="Main" className="flex flex-col items-center gap-1">
-          {nav
-            .filter((item) => item.to !== '/profile')
-            .map((item) => (
-              <RailLink key={item.to} item={item} />
-            ))}
-        </nav>
-        <div className="mt-2 flex flex-col items-center gap-1">
-          <SearchButton variant="rail" />
-          <RailBell />
-          {user && user.role !== 'user' && (
-            <Link to="/admin" aria-label="Admin panel" title="Admin panel" className="flex size-11 items-center justify-center rounded-[14px] text-text-secondary transition-colors hover:bg-bg hover:text-text-primary">
-              <ShieldCheck size={22} strokeWidth={1.8} />
-            </Link>
-          )}
-        </div>
-
-        {user && (
-          <NavLink
-            to="/profile"
-            aria-label="Your profile"
-            className={({ isActive }) =>
-              cn(
-                'mt-auto rounded-full p-0.5 ring-2 transition-shadow focus-visible:outline-2 focus-visible:outline-primary',
-                isActive ? 'ring-primary' : 'ring-transparent hover:ring-border',
-              )
-            }
+    <div className="flex h-dvh flex-col bg-bg">
+      <ConnectionBanner />
+      <div className="flex min-h-0 flex-1">
+        {/* Icon rail — tablet & desktop */}
+        <aside className="hidden w-[76px] shrink-0 flex-col items-center border-r border-border bg-card py-3 sm:flex">
+          <Link
+            to="/chats"
+            aria-label="Grove home"
+            className="mb-4 rounded-[12px] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
           >
-            <Avatar name={user.displayName} src={user.avatarUrl} size={38} status="online" />
-          </NavLink>
-        )}
-      </aside>
+            <LogoMark size={40} />
+          </Link>
 
-      {/* Page content */}
-      <main
-        className={cn(
-          'flex min-w-0 flex-1 flex-col overflow-y-auto sm:pb-0',
-          !inConversation && 'pb-[calc(64px+env(safe-area-inset-bottom))]',
-        )}
-      >
-        <Outlet />
-      </main>
+          <nav aria-label="Main" className="flex flex-col items-center gap-1">
+            {nav
+              .filter((item) => item.to !== '/profile')
+              .map((item) => (
+                <RailLink key={item.to} item={item} />
+              ))}
+          </nav>
+          <div className="mt-2 flex flex-col items-center gap-1">
+            <SearchButton variant="rail" />
+            <RailBell />
+            {user && user.role !== 'user' && (
+              <Link to="/admin" aria-label="Admin panel" title="Admin panel" className="flex size-11 items-center justify-center rounded-[14px] text-text-secondary transition-colors hover:bg-bg hover:text-text-primary">
+                <ShieldCheck size={22} strokeWidth={1.8} />
+              </Link>
+            )}
+          </div>
 
+          {user && (
+            <NavLink
+              to="/profile"
+              aria-label="Your profile"
+              className={({ isActive }) =>
+                cn(
+                  'mt-auto rounded-full p-0.5 ring-2 transition-shadow focus-visible:outline-2 focus-visible:outline-primary',
+                  isActive ? 'ring-primary' : 'ring-transparent hover:ring-border',
+                )
+              }
+            >
+              <Avatar name={user.displayName} src={user.avatarUrl} size={38} status="online" />
+            </NavLink>
+          )}
+        </aside>
+
+        {/* Page content */}
+        <main
+          className={cn(
+            'flex min-w-0 flex-1 flex-col overflow-y-auto sm:pb-0',
+            !inConversation && 'pb-[calc(64px+env(safe-area-inset-bottom))]',
+          )}
+        >
+          <Outlet />
+        </main>
+      </div>
 
       <LiveToaster />
       <SearchOverlay />
@@ -134,7 +137,7 @@ function CountBadge({ count, className }: { count?: number; className?: string }
   return (
     <span
       className={cn(
-        'absolute flex h-4 min-w-4 items-center justify-center rounded-full border-[1.5px] border-card bg-error px-1 text-[9px] font-bold text-white',
+        'absolute flex h-4 min-w-4 items-center justify-center rounded-full border-[1.5px] border-card bg-error-solid px-1 text-[9px] font-bold text-white',
         className,
       )}
     >

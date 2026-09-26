@@ -18,7 +18,7 @@ const dateOf = (p: PostCard) => (p.status === 'draft' ? `Edited ${formatListTime
 export function PostCardView({ post: p }: { post: PostCard }) {
   const published = p.status === 'published';
   return (
-    <Link to={published ? `/blog/${p.id}` : `/blog/${p.id}/edit`} className={cardLink}>
+    <Link to={published ? `/blog/${p.id}` : `/blog/write/${p.id}`} className={cardLink}>
       <PostCover coverUrl={p.coverUrl} theme={p.coverTheme} className="h-40 sm:h-44">
         {!published && (
           <span className="absolute top-3 left-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-bold tracking-wide text-white uppercase">Draft</span>
@@ -29,7 +29,7 @@ export function PostCardView({ post: p }: { post: PostCard }) {
           <TagChip tag={p.tag} />
           <span className="text-[11px] text-text-secondary">{p.readMinutes} min read</span>
         </div>
-        <h3 className="line-clamp-2 text-[16px] leading-snug font-bold text-text-primary sm:text-[17px]">{p.title || 'Untitled draft'}</h3>
+        <h2 className="line-clamp-2 text-[16px] leading-snug font-bold text-text-primary sm:text-[17px]">{p.title || 'Untitled draft'}</h2>
         {p.excerpt && <p className="line-clamp-2 text-sm leading-relaxed text-text-secondary">{p.excerpt}</p>}
         <div className="mt-auto flex items-center gap-2.5 pt-1.5">
           <Avatar name={authorName(p)} src={p.author?.avatarUrl ?? null} size={28} />

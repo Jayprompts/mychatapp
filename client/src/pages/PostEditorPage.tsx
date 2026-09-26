@@ -284,7 +284,7 @@ function Editor({ initial, onCreated }: { initial: PostDetail | null; onCreated:
           <X size={18} />
         </button>
         <div className="min-w-0 flex-1">
-          <p className="text-[15px] leading-tight font-bold text-text-primary">{initial || id ? (isDraft ? 'Edit draft' : 'Edit post') : 'New post'}</p>
+          <h1 className="text-[15px] leading-tight font-bold text-text-primary">{initial || id ? (isDraft ? 'Edit draft' : 'Edit post') : 'New post'}</h1>
           <p aria-live="polite" className={cn('truncate text-xs', saveState === 'error' ? 'text-error' : 'text-text-secondary')}>
             {saveLabel}
           </p>

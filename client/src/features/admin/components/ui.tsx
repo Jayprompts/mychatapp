@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 import type { Role } from '@/features/auth/types';
 import { cn } from '@/lib/cn';
@@ -8,7 +9,7 @@ import type { AdminUser } from '../types';
 
 const ROLE_STYLE: Record<Role, { label: string; className: string }> = {
   super_admin: { label: 'Super Admin', className: 'gradient-brand text-white' },
-  content_mod: { label: 'Content Mod', className: 'bg-primary text-white' },
+  content_mod: { label: 'Content Mod', className: 'bg-primary-solid text-white' },
   community_mgr: { label: 'Community Mgr', className: 'bg-community text-white' },
   user: { label: 'User', className: 'bg-surface-2 text-text-secondary' },
 };
@@ -104,4 +105,31 @@ export function PageTitle({ title, description, actions }: { title: string; desc
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
+}
+
+// Loading rows for any admin table (per the design): an avatar + two lines, then one bar per column.
+export function SkeletonRows({ cols, rows = 6, leading = 0 }: { cols: number; rows?: number; leading?: number }) {
+  return Array.from({ length: rows }, (_, r) => (
+    <tr key={r} aria-hidden className="border-b border-row-line last:border-0">
+      {Array.from({ length: leading }, (_, i) => (
+        <td key={`l${i}`} className={td}>
+          <Skeleton className="size-4 rounded" />
+        </td>
+      ))}
+      <td className={td}>
+        <div className="flex items-center gap-2.5">
+          <Skeleton className="size-7 shrink-0 rounded-full" />
+          <div className="flex flex-col gap-1.5">
+            <Skeleton className="h-3 w-28" />
+            <Skeleton className="h-2.5 w-16" />
+          </div>
+        </div>
+      </td>
+      {Array.from({ length: cols - 1 }, (_, c) => (
+        <td key={c} className={td}>
+          <Skeleton className={cn('h-3', ['w-32', 'w-16', 'w-14', 'w-12', 'w-20'][c % 5])} />
+        </td>
+      ))}
+    </tr>
+  ));
 }

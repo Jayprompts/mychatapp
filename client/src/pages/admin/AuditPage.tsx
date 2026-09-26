@@ -1,7 +1,7 @@
 import { useSearchParams } from 'react-router';
 import { useAudit } from '@/features/admin/api';
 import { AUDIT_ACTION_OPTIONS, describeAudit } from '@/features/admin/audit';
-import { FilterSelect, PageTitle, Pagination, TableCard, td, th } from '@/features/admin/components/ui';
+import { FilterSelect, PageTitle, Pagination, SkeletonRows, TableCard, td, th } from '@/features/admin/components/ui';
 import { cn } from '@/lib/cn';
 
 const when = (iso: string) => new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
@@ -36,6 +36,7 @@ export function AuditPage() {
             </tr>
           </thead>
           <tbody>
+            {log.isPending && <SkeletonRows cols={3} rows={8} />}
             {(log.data?.entries ?? []).map((e) => (
               <tr key={e.id} className="border-b border-row-line last:border-0">
                 <td className={cn(td, 'whitespace-nowrap text-text-secondary')}>{when(e.createdAt)}</td>

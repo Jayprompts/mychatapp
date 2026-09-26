@@ -5,9 +5,10 @@ import { Avatar } from '@/components/ui/Avatar';
 import { Button } from '@/components/ui/Button';
 import { Menu, type MenuItem } from '@/components/ui/Menu';
 import { Modal } from '@/components/ui/Modal';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useBulkUsers, useAdminUsers, useDeleteUser, useSetRole, useSetStatus } from '@/features/admin/api';
 import { ReasonDialog } from '@/features/admin/components/ReasonDialog';
-import { AdminRoleBadge, FilterSelect, PageTitle, Pagination, SearchBox, StatusBadge, TableCard, td, th } from '@/features/admin/components/ui';
+import { AdminRoleBadge, FilterSelect, PageTitle, Pagination, SearchBox, SkeletonRows, StatusBadge, TableCard, td, th } from '@/features/admin/components/ui';
 import { ROLE_LABELS, type AdminUser } from '@/features/admin/types';
 import { useMe } from '@/features/auth/api';
 import type { Role } from '@/features/auth/types';
@@ -112,11 +113,12 @@ export function UsersPage() {
                 </th>
               )}
               {['User', 'Email', 'Role', 'Status', 'Joined', 'Last active', ''].map((h) => (
-                <th key={h} className={th}>{h}</th>
+                <th key={h} className={th}>{h || <span className="sr-only">Actions</span>}</th>
               ))}
             </tr>
           </thead>
           <tbody>
+            {list.isPending && <SkeletonRows cols={7} leading={canAct ? 1 : 0} />}
             {users.map((u) => (
               <tr key={u.id} className={cn('border-b border-row-line last:border-0 hover:bg-row-hover', selected.has(u.id) && 'bg-primary/4')}>
                 {canAct && (
@@ -166,7 +168,19 @@ export function UsersPage() {
           ))}
         </ul>
         {list.data && users.length === 0 && <p className="px-4 py-10 text-center text-[13px] text-text-secondary">No one matches these filters.</p>}
-        {list.isPending && <p className="px-4 py-10 text-center text-[13px] text-text-secondary">Loading…</p>}
+        {list.isPending && (
+          <ul className="divide-y divide-border md:hidden" aria-hidden>
+            {Array.from({ length: 5 }, (_, i) => (
+              <li key={i} className="flex items-center gap-3 p-3">
+                <Skeleton className="size-9 rounded-full" />
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <Skeleton className="h-3.5 w-1/3" />
+                  <Skeleton className="h-3 w-1/2" />
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </TableCard>
 
       <ActionDialogs pending={pending} onClose={() => setPending(null)} onDone={() => setSelected(new Set())} />

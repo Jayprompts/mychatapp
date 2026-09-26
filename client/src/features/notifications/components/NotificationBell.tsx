@@ -44,7 +44,7 @@ export function RailBell() {
       >
         <Bell size={22} strokeWidth={1.8} />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full border-[1.5px] border-card bg-error px-1 text-[9px] font-bold text-white">
+          <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full border-[1.5px] border-card bg-error-solid px-1 text-[9px] font-bold text-white">
             {countLabel(unread)}
           </span>
         )}
@@ -84,7 +84,7 @@ export function HeaderBell() {
     >
       <Bell size={22} strokeWidth={1.8} />
       {unread > 0 && (
-        <span className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full border-[1.5px] border-card bg-error px-1 text-[9px] font-bold text-white">
+        <span className="absolute top-0.5 right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full border-[1.5px] border-card bg-error-solid px-1 text-[9px] font-bold text-white">
           {countLabel(unread)}
         </span>
       )}
